@@ -1,4 +1,5 @@
 #include "Player/MEPlayerController.h"
+#include "MetroExodusLike.h"
 #include "Player/MECharacter.h"
 #include "Input/MEInputConfig.h"
 #include "Interaction/MEInteractionComponent.h"
@@ -17,7 +18,12 @@ void AMEPlayerController::OnPossess(APawn* InPawn)
 
 	if (!InteractionPrompt)
 	{
-		InteractionPrompt = CreateWidget<UMEInteractionPromptWidget>(this, UMEInteractionPromptWidget::StaticClass());
+		if (!InteractionPromptClass)
+		{
+			UE_LOG(LogME, Error, TEXT("%s: InteractionPromptClass is not set, no interaction prompt."), *GetName());
+			return;
+		}
+		InteractionPrompt = CreateWidget<UMEInteractionPromptWidget>(this, InteractionPromptClass);
 		InteractionPrompt->AddToViewport();
 	}
 

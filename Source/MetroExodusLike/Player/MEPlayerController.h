@@ -20,6 +20,10 @@ protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
 
+	/** Layout of the interaction prompt (WBP_InteractionPrompt). */
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UMEInteractionPromptWidget> InteractionPromptClass;
+
 private:
 	void HandleInteractionFocusChanged(bool bHasFocus, const FMEInteractionInfo& Info);
 	void HandleInteractionProgress(float Progress);
