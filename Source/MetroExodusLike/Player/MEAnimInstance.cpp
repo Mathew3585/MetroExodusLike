@@ -2,6 +2,13 @@
 #include "Player/MECharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+UMEAnimInstance::UMEAnimInstance()
+{
+	// Movement and rotation are driven in C++ (character movement + body rotation).
+	// Root motion baked in the clips (landings move ~2 m forward, turns rotate) must never move the character.
+	RootMotionMode = ERootMotionMode::NoRootMotionExtraction;
+}
+
 void UMEAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();

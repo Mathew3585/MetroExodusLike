@@ -18,6 +18,8 @@ class METROEXODUSLIKE_API UMEAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 
 public:
+	UMEAnimInstance();
+
 	/** Plays the turn-in-place step animation. Returns its duration in seconds (0 if none). */
 	float PlayTurnInPlace(bool bTurnRight);
 
