@@ -106,7 +106,8 @@ struct FMEImpactSettings
  *  2. Head bob: walk / sprint sway
  *  3. Breathing: rested to exhausted, can be held
  *  4. Impacts: spring on jump and landing
- * Layers 2-4 are applied as an additive offset in camera space.
+ *  5. Strafe tilt: slight roll when moving sideways
+ * Layers 2-5 are applied as an additive offset in camera space.
  */
 UCLASS(ClassGroup = (Camera), meta = (BlueprintSpawnableComponent))
 class METROEXODUSLIKE_API UMEFirstPersonCameraComponent : public UCameraComponent
@@ -179,11 +180,21 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Camera|Impacts")
 	FMEImpactSettings Impacts;
 
+	// --- Strafe tilt ---
+
+	/** Roll when strafing at full bob speed. Positive leans into the movement, 0 disables. */
+	UPROPERTY(EditAnywhere, Category = "Camera|Strafe Tilt", meta = (Units = "Degrees"))
+	float StrafeRollAngle = 1.f;
+
+	UPROPERTY(EditAnywhere, Category = "Camera|Strafe Tilt", meta = (ClampMin = "0"))
+	float StrafeRollSpeed = 5.f;
+
 private:
 	void UpdatePlacement(float DeltaTime);
 	void UpdateHeadBob(float DeltaTime, FVector& OutLocation, FRotator& OutRotation);
 	void UpdateBreathing(float DeltaTime, FVector& OutLocation, FRotator& OutRotation);
 	void UpdateImpacts(float DeltaTime, FVector& OutLocation, FRotator& OutRotation);
+	void UpdateStrafeTilt(float DeltaTime, FRotator& OutRotation);
 
 	UPROPERTY(Transient)
 	TObjectPtr<AMECharacter> Character;
@@ -208,4 +219,7 @@ private:
 	float SpringVelocity = 0.f;
 	float LastFallSpeed = 0.f;
 	bool bWasFalling = false;
+
+	// Strafe tilt
+	float StrafeRoll = 0.f;
 };

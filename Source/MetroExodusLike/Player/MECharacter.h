@@ -20,6 +20,8 @@ class METROEXODUSLIKE_API AMECharacter : public ACharacter
 public:
 	AMECharacter();
 
+	virtual void Tick(float DeltaSeconds) override;
+
 	UMEFirstPersonCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }
 	bool IsSprinting() const;
 
@@ -58,6 +60,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement|Crouch")
 	bool bCrouchIsToggle = true;
 
+	/** Standing still, the body turns once the view is this far from it. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Body Rotation", meta = (ClampMin = "0", ClampMax = "180", Units = "Degrees"))
+	float TurnInPlaceThreshold = 70.f;
+
+	/** How fast the body turns in place to catch up with the view. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Body Rotation", meta = (ClampMin = "0", Units = "DegreesPerSecond"))
+	float TurnInPlaceRate = 220.f;
+
+	/** How fast the body follows the view while moving. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Body Rotation", meta = (ClampMin = "0"))
+	float MovingTurnSpeed = 15.f;
+
 private:
 	void Move(const FInputActionValue& Value);
 	void StopMoving();
@@ -68,7 +82,9 @@ private:
 	void CrouchPressed();
 	void CrouchReleased();
 	void UpdateMaxWalkSpeed();
+	void UpdateBodyRotation(float DeltaSeconds);
 
 	FVector2D MoveInput = FVector2D::ZeroVector;
 	bool bWantsToSprint = false;
+	bool bIsTurningInPlace = false;
 };

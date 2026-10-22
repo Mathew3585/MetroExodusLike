@@ -2,6 +2,7 @@
 #include "MetroExodusLike.h"
 #include "Input/MEInputConfig.h"
 #include "Player/MEFirstPersonCameraComponent.h"
+#include "Player/MEAnimInstance.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/LocalPlayer.h"
@@ -11,14 +12,15 @@
 
 AMECharacter::AMECharacter()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	// Ticks to rotate the body (see UpdateBodyRotation)
+	PrimaryActorTick.bCanEverTick = true;
 
 	GetCapsuleComponent()->InitCapsuleSize(34.f, 88.f);
 	BaseEyeHeight = 80.f; // Matches the head of the body mesh (AI sight, camera fallback)
 	CrouchedEyeHeight = 55.f;
 
-	// First person: the body follows the camera yaw
-	bUseControllerRotationYaw = true;
+	// The body yaw is driven by UpdateBodyRotation, not directly by the camera
+	bUseControllerRotationYaw = false;
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 
@@ -65,6 +67,49 @@ void AMECharacter::BeginPlay()
 
 	// Picks up the value edited in the Blueprint
 	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed;
+}
+
+void AMECharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	UpdateBodyRotation(DeltaSeconds);
+}
+
+void AMECharacter::UpdateBodyRotation(float DeltaSeconds)
+{
+	const FRotator BodyRotation = GetActorRotation();
+	const FRotator ViewYaw(0.f, GetControlRotation().Yaw, 0.f);
+	const float Offset = FRotator::NormalizeAxis(ViewYaw.Yaw - BodyRotation.Yaw);
+
+	const UCharacterMovementComponent* Movement = GetCharacterMovement();
+	const bool bIsMoving = Movement->IsFalling()
+		|| Movement->Velocity.SizeSquared2D() > FMath::Square(10.f)
+		|| !Movement->GetCurrentAcceleration().IsNearlyZero();
+
+	// Moving: the body follows the view smoothly
+	if (bIsMoving)
+	{
+		bIsTurningInPlace = false;
+		SetActorRotation(FMath::RInterpTo(BodyRotation, ViewYaw, DeltaSeconds, MovingTurnSpeed));
+		return;
+	}
+
+	// Standing still: the body only turns once the view is too far from it, stepping with the turn animation
+	if (!bIsTurningInPlace && FMath::Abs(Offset) > TurnInPlaceThreshold)
+	{
+		bIsTurningInPlace = true;
+		if (UMEAnimInstance* AnimInstance = Cast<UMEAnimInstance>(GetMesh()->GetAnimInstance()))
+		{
+			AnimInstance->PlayTurnInPlace(Offset > 0.f);
+		}
+	}
+
+	if (bIsTurningInPlace)
+	{
+		SetActorRotation(FMath::RInterpConstantTo(BodyRotation, ViewYaw, DeltaSeconds, TurnInPlaceRate));
+		bIsTurningInPlace = FMath::Abs(Offset) > 1.f;
+	}
 }
 
 bool AMECharacter::IsSprinting() const
@@ -116,11 +161,12 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 void AMECharacter::Move(const FInputActionValue& Value)
 {
-	// X = right, Y = forward
+	// X = right, Y = forward, relative to the view (the body may lag behind it)
 	MoveInput = Value.Get<FVector2D>();
 
-	AddMovementInput(GetActorForwardVector(), MoveInput.Y);
-	AddMovementInput(GetActorRightVector(), MoveInput.X);
+	const FRotationMatrix ViewYaw(FRotator(0.f, GetControlRotation().Yaw, 0.f));
+	AddMovementInput(ViewYaw.GetUnitAxis(EAxis::X), MoveInput.Y);
+	AddMovementInput(ViewYaw.GetUnitAxis(EAxis::Y), MoveInput.X);
 
 	UpdateMaxWalkSpeed();
 }

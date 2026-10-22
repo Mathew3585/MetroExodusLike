@@ -44,6 +44,7 @@ void UMEFirstPersonCameraComponent::TickComponent(float DeltaTime, ELevelTick Ti
 	UpdateHeadBob(DeltaTime, OffsetLocation, OffsetRotation);
 	UpdateBreathing(DeltaTime, OffsetLocation, OffsetRotation);
 	UpdateImpacts(DeltaTime, OffsetLocation, OffsetRotation);
+	UpdateStrafeTilt(DeltaTime, OffsetRotation);
 
 	ClearAdditiveOffset();
 	AddAdditiveOffset(FTransform(OffsetRotation, OffsetLocation), 0.f);
@@ -158,4 +159,18 @@ void UMEFirstPersonCameraComponent::UpdateImpacts(float DeltaTime, FVector& OutL
 
 	OutLocation.Z += SpringOffset;
 	OutRotation.Pitch += SpringOffset * Impacts.PitchPerCm;
+}
+
+void UMEFirstPersonCameraComponent::UpdateStrafeTilt(float DeltaTime, FRotator& OutRotation)
+{
+	const UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+	const FRotator ViewYaw(0.f, Character->GetControlRotation().Yaw, 0.f);
+
+	// Sideways speed relative to the view, -1 (left) .. 1 (right) at full bob speed
+	const float Sideways = Movement->IsMovingOnGround()
+		? FMath::Clamp(ViewYaw.UnrotateVector(Movement->Velocity).Y / FullBobSpeed, -1.f, 1.f)
+		: 0.f;
+
+	StrafeRoll = FMath::FInterpTo(StrafeRoll, Sideways * StrafeRollAngle, DeltaTime, StrafeRollSpeed);
+	OutRotation.Roll += StrafeRoll;
 }

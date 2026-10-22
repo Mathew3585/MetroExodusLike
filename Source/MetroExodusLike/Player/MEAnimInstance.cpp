@@ -32,4 +32,65 @@ void UMEAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		: 0.f;
 
 	AimPitch = FRotator::NormalizeAxis(Character->GetBaseAimRotation().Pitch);
+
+	// Landing detection
+	if (bIsInAir)
+	{
+		FallSpeed = FMath::Max(0.f, -Velocity.Z);
+	}
+	else if (bWasInAir)
+	{
+		PlayLanding();
+	}
+	bWasInAir = bIsInAir;
+
+	// One-shots never block movement: moving or jumping blends them out
+	if ((bShouldMove || bIsInAir) && IsSlotActive(OneShotSlot))
+	{
+		StopSlotAnimation(InterruptBlendOut, OneShotSlot);
+		LandingTimeRemaining = 0.f;
+	}
+
+	if (LandingTimeRemaining > 0.f)
+	{
+		LandingTimeRemaining -= DeltaSeconds;
+		if (LandingTimeRemaining <= 0.f)
+		{
+			StopSlotAnimation(InterruptBlendOut, OneShotSlot);
+		}
+	}
+}
+
+float UMEAnimInstance::PlayTurnInPlace(bool bTurnRight)
+{
+	UAnimSequenceBase* Anim = bIsCrouching
+		? (bTurnRight ? CrouchTurnRight : CrouchTurnLeft)
+		: (bTurnRight ? TurnRight : TurnLeft);
+
+	if (!Anim)
+	{
+		return 0.f;
+	}
+
+	LandingTimeRemaining = 0.f;
+	PlaySlotAnimationAsDynamicMontage(Anim, OneShotSlot, 0.15f, 0.3f, TurnPlayRate);
+	return Anim->GetPlayLength() / TurnPlayRate;
+}
+
+void UMEAnimInstance::PlayLanding()
+{
+	if (FallSpeed < LightLandingSpeed || bIsCrouching)
+	{
+		return;
+	}
+
+	const bool bHeavy = FallSpeed >= HeavyLandingSpeed;
+	UAnimSequenceBase* Anim = bHeavy ? LandHeavy : LandLight;
+	if (!Anim)
+	{
+		return;
+	}
+
+	PlaySlotAnimationAsDynamicMontage(Anim, OneShotSlot, 0.05f, 0.3f);
+	LandingTimeRemaining = bHeavy ? HeavyLandingDuration : LightLandingDuration;
 }
