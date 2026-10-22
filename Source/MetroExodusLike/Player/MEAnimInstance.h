@@ -44,6 +44,9 @@ public:
 	/** Plays the landing clip. Heavy always plays the stop-and-absorb clip, light depends on movement. */
 	void PlayLanding(bool bHeavy);
 
+	/** Upper-body pose holding the current weapon, layered on the arms (null = no weapon). */
+	void SetWeaponPose(UAnimSequenceBase* Pose);
+
 protected:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
@@ -71,6 +74,14 @@ protected:
 	/** Camera pitch in degrees (-90 down .. 90 up), for spine bending later. */
 	UPROPERTY(BlueprintReadOnly, Category = "Aim")
 	float AimPitch = 0.f;
+
+	/** Arms pose holding the weapon, layered from the clavicles. */
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimSequenceBase> WeaponPose;
+
+	/** 1 with a weapon, 0 without (arms back to the locomotion). */
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
+	float WeaponPoseWeight = 0.f;
 
 	// --- One-shot animations (assigned in ABP_MECharacter class defaults) ---
 

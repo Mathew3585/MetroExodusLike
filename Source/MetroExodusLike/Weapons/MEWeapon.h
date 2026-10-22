@@ -18,8 +18,11 @@ class METROEXODUSLIKE_API AMEWeapon : public AActor
 public:
 	AMEWeapon();
 
-	/** Sets up mesh and parts from the data, fills the magazine. */
-	void Initialize(UMEWeaponData* InData);
+	/**
+	 * Sets up mesh and parts from the data, fills the magazine.
+	 * First person: drawn in the view model. World: invisible, only casts the shadow.
+	 */
+	void Initialize(UMEWeaponData* InData, bool bFirstPerson);
 
 	/** Plays a weapon-side animation (bolt, magazine...). */
 	void PlayWeaponAnimation(UAnimSequenceBase* Animation);

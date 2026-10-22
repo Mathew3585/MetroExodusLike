@@ -9,6 +9,7 @@ class UMEInputConfig;
 class UMEInteractionComponent;
 class UMEWeaponComponent;
 class UMEAnimInstance;
+class UAnimSequenceBase;
 struct FInputActionValue;
 
 /**
@@ -29,7 +30,11 @@ public:
 	UMEInteractionComponent* GetInteraction() const { return Interaction; }
 	UMEWeaponComponent* GetWeapons() const { return Weapons; }
 	USkeletalMeshComponent* GetFirstPersonArms() const { return FirstPersonArms; }
+	USkeletalMeshComponent* GetWorldBody() const { return ShadowMesh; }
 	const UMEInputConfig* GetInputConfig() const { return InputConfig; }
+
+	/** Upper-body pose of the bodies holding the current weapon (null = no weapon). */
+	void SetBodyWeaponPose(UAnimSequenceBase* Pose);
 	bool IsSprinting() const;
 
 	/** True while absorbing a heavy landing: no movement, no jump. */
@@ -48,8 +53,9 @@ protected:
 	TObjectPtr<UMEFirstPersonCameraComponent> FirstPersonCamera;
 
 	/**
-	 * Full body (with head), hidden but casting the shadow, so our shadow has a head.
-	 * The visible body (GetMesh) is the headless version and casts no shadow.
+	 * World body: the full character holding the world weapon, hidden for the player.
+	 * It casts our shadow and is what the AI sees. Later it can show during full-body actions.
+	 * The visible body (GetMesh + VisibleBodyParts) is legs and torso only, no arms, no head, no shadow.
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> ShadowMesh;
@@ -68,9 +74,19 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEWeaponComponent> Weapons;
 
-	/** Bones hidden on the visible body (with their children) since the first-person arms replace them. */
+	/**
+	 * Extra meshes of the visible body (torso, vest, gear), following its pose.
+	 * GetMesh holds the legs. Never put arms or head here: the first-person arms replace them.
+	 */
 	UPROPERTY(EditDefaultsOnly, Category = "First Person")
-	TArray<FName> BodyBonesHiddenInFirstPerson = { TEXT("upperarm_l"), TEXT("upperarm_r") };
+	TArray<TObjectPtr<USkeletalMesh>> VisibleBodyParts;
+
+	/**
+	 * Bones folded away on the visible body (sleeves would come in front of the camera).
+	 * Only the upper arms: hiding the clavicles collapses the torso.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "First Person")
+	TArray<FName> VisibleBodyHiddenBones = { TEXT("upperarm_l"), TEXT("upperarm_r") };
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UMEInputConfig> InputConfig;

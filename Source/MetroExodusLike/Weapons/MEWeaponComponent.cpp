@@ -29,11 +29,15 @@ void UMEWeaponComponent::BeginPlay()
 
 void UMEWeaponComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (Weapon)
+	for (AMEWeapon* Spawned : { Weapon.Get(), WorldWeapon.Get() })
 	{
-		Weapon->Destroy();
-		Weapon = nullptr;
+		if (Spawned)
+		{
+			Spawned->Destroy();
+		}
 	}
+	Weapon = nullptr;
+	WorldWeapon = nullptr;
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -43,8 +47,10 @@ void UMEWeaponComponent::Equip(UMEWeaponData* WeaponData)
 	FActorSpawnParameters Params;
 	Params.Owner = Character;
 	Params.Instigator = Character;
+
+	// First-person weapon, in the arms
 	Weapon = GetWorld()->SpawnActor<AMEWeapon>(WeaponClass, Params);
-	Weapon->Initialize(WeaponData);
+	Weapon->Initialize(WeaponData, true);
 
 	USkeletalMeshComponent* Arms = Character->GetFirstPersonArms();
 	Weapon->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponData->ArmsAttachBone);
@@ -53,6 +59,14 @@ void UMEWeaponComponent::Equip(UMEWeaponData* WeaponData)
 	{
 		ArmsAnim->SetWeaponData(WeaponData);
 	}
+
+	// World weapon, in the world body's hands: casts the shadow, seen by the AI
+	WorldWeapon = GetWorld()->SpawnActor<AMEWeapon>(WeaponClass, Params);
+	WorldWeapon->Initialize(WeaponData, false);
+	WorldWeapon->AttachToComponent(Character->GetWorldBody(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponData->BodyAttachBone);
+	WorldWeapon->SetActorRelativeTransform(WeaponData->BodyGripOffset);
+
+	Character->SetBodyWeaponPose(WeaponData->BodyHoldPose);
 
 	PlayAction(WeaponData->Draw);
 }

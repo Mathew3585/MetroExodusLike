@@ -78,7 +78,8 @@ Packs achetés ou importés : dans leur propre dossier (`QuantumCharacter/`, `Ch
 
 ## 6. Règles de design Metro (décidées)
 
-- **Hybride (décidé en Phase 3)** : 3 meshes. Corps sans tête (jambes, torse, bras cachés pour le joueur) + corps complet invisible pour l'ombre + **bras FPS** (`SKM_Arms`) accrochés à la caméra, avec l'arme sur `ik_hand_gun`.
+- **Hybride avec jambes (décidé en Phase 3)** : corps visible = jambes + torse en modules (sans bras ni tête, haut des bras replié), bras FPS + arme FPS sur la caméra, corps du monde complet + arme du monde invisibles (ombre, IA). Actions spéciales (escalade, takedown…) : « moment full body », on affiche le corps du monde.
+- **Near clip plane à 2 cm** (`DefaultEngine.ini`) : l'arrière de l'arme est à quelques cm de l'œil.
 - **Toujours armé** : pas de touche pour ranger l'arme, sauf zones sûres scriptées.
 - **Main gauche** pour toutes les interactions, l'arme reste en main droite.
 - **Équipement lourd** : les réceptions de grande hauteur arrêtent net le personnage.

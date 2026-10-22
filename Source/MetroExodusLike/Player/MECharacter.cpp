@@ -82,12 +82,28 @@ void AMECharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// The visible body's arms are replaced by the first-person arms.
-	// The shadow body runs its own animation (its AnimBP is set in the Blueprint), so it keeps its arms.
-	for (const FName& Bone : BodyBonesHiddenInFirstPerson)
+	// Visible body: legs (GetMesh) + torso and gear parts copying its pose
+	TArray<USkeletalMeshComponent*> VisibleBody = { GetMesh() };
+	for (USkeletalMesh* Part : VisibleBodyParts)
 	{
-		GetMesh()->HideBoneByName(Bone, PBO_None);
+		USkeletalMeshComponent* PartComponent = NewObject<USkeletalMeshComponent>(this);
+		PartComponent->SetSkeletalMeshAsset(Part);
+		PartComponent->SetCastShadow(false);
+		PartComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		PartComponent->SetupAttachment(GetMesh());
+		PartComponent->SetLeaderPoseComponent(GetMesh());
+		PartComponent->RegisterComponent();
+		VisibleBody.Add(PartComponent);
 	}
+
+	for (USkeletalMeshComponent* Component : VisibleBody)
+	{
+		for (const FName& Bone : VisibleBodyHiddenBones)
+		{
+			Component->HideBoneByName(Bone, PBO_None);
+		}
+	}
+
 	FirstPersonCamera->SetViewModelPivot(ViewModelPivot);
 
 	// Picks up the value edited in the Blueprint
@@ -139,6 +155,11 @@ void AMECharacter::Landed(const FHitResult& Hit)
 	LandingRecoveryRemaining = LandingRecoveryDuration;
 
 	ForEachBodyAnimInstance([bHeavy](UMEAnimInstance& AnimInstance) { AnimInstance.PlayLanding(bHeavy); });
+}
+
+void AMECharacter::SetBodyWeaponPose(UAnimSequenceBase* Pose)
+{
+	ForEachBodyAnimInstance([Pose](UMEAnimInstance& AnimInstance) { AnimInstance.SetWeaponPose(Pose); });
 }
 
 void AMECharacter::ForEachBodyAnimInstance(TFunctionRef<void(UMEAnimInstance&)> Function) const

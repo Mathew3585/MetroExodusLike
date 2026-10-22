@@ -10,7 +10,8 @@ class UMEWeaponData;
 struct FMEWeaponAnimation;
 
 /**
- * The player's weapon handling: spawns and holds the weapon in the first-person arms.
+ * The player's weapon handling: spawns the weapon in the first-person arms,
+ * and a copy in the world body's hands (shadow, AI).
  * Firing, reloading and aiming come in the next steps (3.3, 3.4).
  */
 UCLASS(ClassGroup = (Weapons), meta = (BlueprintSpawnableComponent))
@@ -43,6 +44,11 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<AMECharacter> Character;
 
+	/** Weapon drawn in first person, in the arms. */
 	UPROPERTY(Transient)
 	TObjectPtr<AMEWeapon> Weapon;
+
+	/** Copy held by the world body: invisible, casts the shadow. */
+	UPROPERTY(Transient)
+	TObjectPtr<AMEWeapon> WorldWeapon;
 };

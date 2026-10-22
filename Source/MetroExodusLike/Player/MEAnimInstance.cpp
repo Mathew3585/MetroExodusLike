@@ -98,6 +98,12 @@ void UMEAnimInstance::PlayLanding(bool bHeavy)
 	PlayOneShot(Landing.Animation, 1.f, Landing.ContactTime, Landing.HoldTime, !bMovingForward);
 }
 
+void UMEAnimInstance::SetWeaponPose(UAnimSequenceBase* Pose)
+{
+	WeaponPose = Pose;
+	WeaponPoseWeight = Pose ? 1.f : 0.f;
+}
+
 void UMEAnimInstance::PlayOneShot(UAnimSequenceBase* Animation, float PlayRate, float StartTime, float HoldTime, bool bInterruptible)
 {
 	if (!Animation)
