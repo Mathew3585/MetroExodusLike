@@ -31,7 +31,7 @@ Réévaluation en Phase 3 : rester en true FPS pur ou passer en hybride (bras FP
 - [x] 1.4 Stabilisation de la caméra (filtrer le mouvement de tête de l'anim)
 - [x] 1.5 Locomotion complète via Game Animation Sample (gratuit, retargeté) : marche arrière, strafe, rotation sur place
 - [x] 1.6 S'accroupir (transition de caméra fluide)
-- [ ] 1.7 Poids Metro : inertie, inclinaison légère de caméra
+- [x] 1.7 Poids Metro : rotation sur place, atterrissages léger/lourd (arrêt net + regard au sol), inclinaison en strafe
 - [ ] 1.8 Bruits de pas selon la surface (Physical Materials + anim notifies)
 
 **Fini quand :** se déplacer est agréable et « lourd », et on voit son corps de façon crédible en regardant en bas.
