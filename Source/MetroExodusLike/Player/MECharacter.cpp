@@ -15,6 +15,7 @@ AMECharacter::AMECharacter()
 
 	GetCapsuleComponent()->InitCapsuleSize(34.f, 88.f);
 	BaseEyeHeight = 80.f; // Matches the head of the body mesh (AI sight, camera fallback)
+	CrouchedEyeHeight = 55.f;
 
 	// First person: the body follows the camera yaw
 	bUseControllerRotationYaw = true;
@@ -46,6 +47,13 @@ AMECharacter::AMECharacter()
 	Movement->GroundFriction = 6.f;
 	Movement->JumpZVelocity = 380.f;
 	Movement->AirControl = 0.15f;
+
+	// Crouch: 110 cm tall capsule. If something blocks standing up, the movement
+	// component keeps us crouched and stands up as soon as there is room.
+	Movement->GetNavAgentPropertiesRef().bCanCrouch = true;
+	Movement->SetCrouchedHalfHeight(55.f);
+	Movement->MaxWalkSpeedCrouched = CrouchSpeed;
+	Movement->bCanWalkOffLedgesWhenCrouching = true;
 }
 
 void AMECharacter::BeginPlay()
@@ -54,11 +62,15 @@ void AMECharacter::BeginPlay()
 
 	// Shadow body copies the visible body's pose instead of running its own animation
 	ShadowMesh->SetLeaderPoseComponent(GetMesh());
+
+	// Picks up the value edited in the Blueprint
+	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed;
 }
 
 bool AMECharacter::IsSprinting() const
 {
 	return bWantsToSprint
+		&& !bIsCrouched
 		&& MoveInput.Y >= SprintMinForwardInput
 		&& GetCharacterMovement()->IsMovingOnGround();
 }
@@ -94,10 +106,12 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(InputConfig->MoveAction, ETriggerEvent::Triggered, this, &AMECharacter::Move);
 	Input->BindAction(InputConfig->MoveAction, ETriggerEvent::Completed, this, &AMECharacter::StopMoving);
 	Input->BindAction(InputConfig->LookAction, ETriggerEvent::Triggered, this, &AMECharacter::Look);
-	Input->BindAction(InputConfig->JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+	Input->BindAction(InputConfig->JumpAction, ETriggerEvent::Started, this, &AMECharacter::JumpPressed);
 	Input->BindAction(InputConfig->JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 	Input->BindAction(InputConfig->SprintAction, ETriggerEvent::Started, this, &AMECharacter::StartSprint);
 	Input->BindAction(InputConfig->SprintAction, ETriggerEvent::Completed, this, &AMECharacter::StopSprint);
+	Input->BindAction(InputConfig->CrouchAction, ETriggerEvent::Started, this, &AMECharacter::CrouchPressed);
+	Input->BindAction(InputConfig->CrouchAction, ETriggerEvent::Completed, this, &AMECharacter::CrouchReleased);
 }
 
 void AMECharacter::Move(const FInputActionValue& Value)
@@ -128,6 +142,13 @@ void AMECharacter::Look(const FInputActionValue& Value)
 void AMECharacter::StartSprint()
 {
 	bWantsToSprint = true;
+
+	// Sprinting stands the player up (stays crouched under a ceiling)
+	if (bIsCrouched)
+	{
+		UnCrouch();
+	}
+
 	UpdateMaxWalkSpeed();
 }
 
@@ -135,6 +156,38 @@ void AMECharacter::StopSprint()
 {
 	bWantsToSprint = false;
 	UpdateMaxWalkSpeed();
+}
+
+void AMECharacter::JumpPressed()
+{
+	// Jump while crouched stands up instead
+	if (bIsCrouched)
+	{
+		UnCrouch();
+		return;
+	}
+
+	Jump();
+}
+
+void AMECharacter::CrouchPressed()
+{
+	if (bCrouchIsToggle && GetCharacterMovement()->bWantsToCrouch)
+	{
+		UnCrouch();
+	}
+	else
+	{
+		Crouch();
+	}
+}
+
+void AMECharacter::CrouchReleased()
+{
+	if (!bCrouchIsToggle)
+	{
+		UnCrouch();
+	}
 }
 
 void AMECharacter::UpdateMaxWalkSpeed()

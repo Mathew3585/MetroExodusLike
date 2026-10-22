@@ -25,6 +25,7 @@ void UMEAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	bShouldMove = GroundSpeed > 3.f && !Movement->GetCurrentAcceleration().IsNearlyZero();
 	bIsInAir = Movement->IsFalling();
 	bIsSprinting = Character->IsSprinting();
+	bIsCrouching = Movement->IsCrouching();
 
 	Direction = bShouldMove
 		? FRotator::NormalizeAxis(Velocity.Rotation().Yaw - Character->GetActorRotation().Yaw)

@@ -28,8 +28,8 @@ Réévaluation en Phase 3 : rester en true FPS pur ou passer en hybride (bras FP
 - [x] 1.1 Enhanced Input : Input Actions + Mapping Context (assets) référencés par un DataAsset, bindés en C++
 - [x] 1.2 Marcher / courir / sauter / regarder (testable avec la capsule seule)
 - [x] 1.3 Corps true FPS : mesh NoHead, caméra sur le bone de la tête, `UMEAnimInstance` en C++ + AnimBP (graphe uniquement)
-- [ ] 1.4 Stabilisation de la caméra (filtrer le mouvement de tête de l'anim)
-- [ ] 1.5 Pack de locomotion complet (recherche + achat) : marche arrière, strafe, rotation sur place
+- [x] 1.4 Stabilisation de la caméra (filtrer le mouvement de tête de l'anim)
+- [x] 1.5 Locomotion complète via Game Animation Sample (gratuit, retargeté) : marche arrière, strafe, rotation sur place
 - [ ] 1.6 S'accroupir (transition de caméra fluide)
 - [ ] 1.7 Poids Metro : inertie, inclinaison légère de caméra
 - [ ] 1.8 Bruits de pas selon la surface (Physical Materials + anim notifies)

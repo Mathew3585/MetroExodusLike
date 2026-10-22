@@ -36,6 +36,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
 	bool bIsSprinting = false;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
+	bool bIsCrouching = false;
+
 	/** Camera pitch in degrees (-90 down .. 90 up), for spine bending later. */
 	UPROPERTY(BlueprintReadOnly, Category = "Aim")
 	float AimPitch = 0.f;

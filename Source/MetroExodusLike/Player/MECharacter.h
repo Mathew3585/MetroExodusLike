@@ -51,12 +51,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement", meta = (ClampMin = "0", ClampMax = "1"))
 	float SprintMinForwardInput = 0.5f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Crouch", meta = (ClampMin = "0", Units = "cm/s"))
+	float CrouchSpeed = 160.f;
+
+	/** true = press to crouch / press again to stand. false = hold to crouch. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Crouch")
+	bool bCrouchIsToggle = true;
+
 private:
 	void Move(const FInputActionValue& Value);
 	void StopMoving();
 	void Look(const FInputActionValue& Value);
 	void StartSprint();
 	void StopSprint();
+	void JumpPressed();
+	void CrouchPressed();
+	void CrouchReleased();
 	void UpdateMaxWalkSpeed();
 
 	FVector2D MoveInput = FVector2D::ZeroVector;
