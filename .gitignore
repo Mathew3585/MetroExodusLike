@@ -1,0 +1,32 @@
+# IDE
+.vs/
+.idea/
+*.sln
+*.slnx
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+.vsconfig
+
+# Unreal generated
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/*
+!Build/*/
+Build/*/**
+!Build/*/PakBlacklist*.txt
+
+# Plugins generated
+Plugins/**/Binaries/
+Plugins/**/Intermediate/
+
+# Local developer content
+Content/Developers/
+
+# Misc
+*.tmp
+*.log
