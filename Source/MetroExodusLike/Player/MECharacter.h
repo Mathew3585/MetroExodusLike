@@ -4,7 +4,7 @@
 #include "GameFramework/Character.h"
 #include "MECharacter.generated.h"
 
-class UCameraComponent;
+class UMEFirstPersonCameraComponent;
 class UMEInputConfig;
 struct FInputActionValue;
 
@@ -20,9 +20,7 @@ class METROEXODUSLIKE_API AMECharacter : public ACharacter
 public:
 	AMECharacter();
 
-	virtual void Tick(float DeltaSeconds) override;
-
-	UCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }
+	UMEFirstPersonCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }
 	bool IsSprinting() const;
 
 protected:
@@ -31,7 +29,7 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UCameraComponent> FirstPersonCamera;
+	TObjectPtr<UMEFirstPersonCameraComponent> FirstPersonCamera;
 
 	/**
 	 * Full body (with head), hidden but casting the shadow, so our shadow has a head.
@@ -53,14 +51,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement", meta = (ClampMin = "0", ClampMax = "1"))
 	float SprintMinForwardInput = 0.5f;
 
-	/** Bone the camera follows. */
-	UPROPERTY(EditDefaultsOnly, Category = "Camera")
-	FName HeadBoneName = TEXT("head");
-
-	/** Eye position relative to the head bone, in view-yaw space (X forward, Z up). */
-	UPROPERTY(EditDefaultsOnly, Category = "Camera")
-	FVector EyeOffset = FVector(10.f, 0.f, 6.f);
-
 private:
 	void Move(const FInputActionValue& Value);
 	void StopMoving();
@@ -68,7 +58,6 @@ private:
 	void StartSprint();
 	void StopSprint();
 	void UpdateMaxWalkSpeed();
-	void UpdateFirstPersonCamera();
 
 	FVector2D MoveInput = FVector2D::ZeroVector;
 	bool bWantsToSprint = false;
