@@ -32,7 +32,7 @@ Réévaluation en Phase 3 : rester en true FPS pur ou passer en hybride (bras FP
 - [x] 1.5 Locomotion complète via Game Animation Sample (gratuit, retargeté) : marche arrière, strafe, rotation sur place
 - [x] 1.6 S'accroupir (transition de caméra fluide)
 - [x] 1.7 Poids Metro : rotation sur place, atterrissages léger/lourd (arrêt net + regard au sol), inclinaison en strafe
-- [ ] 1.8 Bruits de pas selon la surface (Physical Materials + anim notifies)
+- [-] 1.8 Bruits de pas → déplacé : bruit pour l'IA en Phase 5 (5.2), sons par surface en Phase 9 (9.4)
 
 **Fini quand :** se déplacer est agréable et « lourd », et on voit son corps de façon crédible en regardant en bas.
 
@@ -66,7 +66,7 @@ Réévaluation en Phase 3 : rester en true FPS pur ou passer en hybride (bras FP
 
 ## Phase 5 — IA humaine
 - [ ] 5.1 `AMEAICharacter` + `AMEAIController` (Behavior Tree ou StateTree, à décider à ce moment)
-- [ ] 5.2 Perception : vue + ouïe (tirs, pas)
+- [ ] 5.2 Perception : vue + ouïe (tirs, pas : événements de bruit émis aux pas de l'animation, plus fort en sprint, quasi nul accroupi)
 - [ ] 5.3 États : patrouille → suspicion → alerte → combat → recherche
 - [ ] 5.4 Combat : tir, mise à couvert simple, déplacement
 - [ ] 5.5 Mort, ragdoll, loot sur le corps
@@ -101,7 +101,7 @@ Réévaluation en Phase 3 : rester en true FPS pur ou passer en hybride (bras FP
 - [ ] 9.1 Level design final : tunnel → zone toxique → station occupée → sortie
 - [ ] 9.2 Sauvegarde / checkpoints
 - [ ] 9.3 Menu principal, pause, options (sensibilité, graphismes, volume)
-- [ ] 9.4 Audio d'ambiance, musique, éclairage final
+- [ ] 9.4 Audio : bruits de pas par surface (Physical Materials + anim notifies), ambiance, musique ; éclairage final
 - [ ] 9.5 Optimisation (profiling Unreal Insights, LODs, culling)
 - [ ] 9.6 Playtests + corrections
 
