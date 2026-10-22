@@ -11,7 +11,9 @@
 
 AMECharacter::AMECharacter()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	// Tick after physics so the camera reads the head bone of the current frame's pose
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickGroup = TG_PostPhysics;
 
 	GetCapsuleComponent()->InitCapsuleSize(34.f, 88.f);
 
@@ -20,9 +22,21 @@ AMECharacter::AMECharacter()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 
+	// Feet on the capsule bottom, facing forward (skeletal meshes face +Y)
+	USkeletalMeshComponent* Body = GetMesh();
+	Body->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -88.f), FRotator(0.f, -90.f, 0.f));
+	Body->SetCastShadow(false);
+
+	ShadowMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ShadowMesh"));
+	ShadowMesh->SetupAttachment(Body);
+	ShadowMesh->SetHiddenInGame(true);
+	ShadowMesh->bCastHiddenShadow = true;
+	ShadowMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Positioned on the head bone every frame, see UpdateFirstPersonCamera
 	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
-	FirstPersonCamera->SetRelativeLocation(FVector(0.f, 0.f, 64.f)); // Eye height
+	FirstPersonCamera->SetRelativeLocation(FVector(0.f, 0.f, 64.f)); // Eye height until the first update
 	FirstPersonCamera->bUsePawnControlRotation = true;
 
 	// Heavy, grounded movement: slow acceleration, little air control
@@ -34,6 +48,37 @@ AMECharacter::AMECharacter()
 	Movement->GroundFriction = 6.f;
 	Movement->JumpZVelocity = 380.f;
 	Movement->AirControl = 0.15f;
+}
+
+void AMECharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Shadow body copies the visible body's pose instead of running its own animation
+	ShadowMesh->SetLeaderPoseComponent(GetMesh());
+
+	// The head bone must be animated before we read it
+	AddTickPrerequisiteComponent(GetMesh());
+}
+
+void AMECharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	UpdateFirstPersonCamera();
+}
+
+void AMECharacter::UpdateFirstPersonCamera()
+{
+	if (!GetMesh()->GetSkeletalMeshAsset())
+	{
+		return;
+	}
+
+	const FVector HeadLocation = GetMesh()->GetSocketLocation(HeadBoneName);
+	const FRotator ViewYaw(0.f, GetControlRotation().Yaw, 0.f);
+
+	FirstPersonCamera->SetWorldLocation(HeadLocation + ViewYaw.RotateVector(EyeOffset));
 }
 
 bool AMECharacter::IsSprinting() const

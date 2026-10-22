@@ -17,7 +17,7 @@ Un tunnel + une station, des humains et quelques mutants, la survie avec masque 
 - [x] 0.2 Arborescence `Source/` par domaine (Core, Player créés ; Weapons, AI, Survival, Interaction, Inventory créés quand on en a besoin)
 - [x] 0.3 Build.cs : modules nécessaires (EnhancedInput, AIModule, GameplayTasks, NavigationSystem, UMG, PhysicsCore) + log `LogME`
 - [x] 0.4a `AMEGameMode`, `AMEPlayerController`, `AMECharacter` (caméra FP) + GameMode par défaut dans la config
-- [ ] 0.4b Map de test greybox `Content/Maps/L_Test` (à faire dans l'éditeur)
+- [x] 0.4b Map de test greybox `Content/Maps/L_Test` (tunnel, escalier, rampe, caisses de saut, passage bas)
 
 **Fini quand :** le projet compile, PIE démarre sur la map de test avec notre GameMode.
 
@@ -25,8 +25,8 @@ Un tunnel + une station, des humains et quelques mutants, la survie avec masque 
 Choix : **true FPS** — un seul corps complet (`SKM_QuantumCharacter_NoHead`), caméra dans la tête, on voit ses jambes.
 Réévaluation en Phase 3 : rester en true FPS pur ou passer en hybride (bras FPS `SKM_Arms` pour les armes).
 
-- [ ] 1.1 Enhanced Input : Input Actions + Mapping Context (assets) référencés par un DataAsset, bindés en C++
-- [ ] 1.2 Marcher / courir / sauter / regarder (testable avec la capsule seule)
+- [x] 1.1 Enhanced Input : Input Actions + Mapping Context (assets) référencés par un DataAsset, bindés en C++
+- [x] 1.2 Marcher / courir / sauter / regarder (testable avec la capsule seule)
 - [ ] 1.3 Corps true FPS : mesh NoHead, caméra sur le bone de la tête, `UMEAnimInstance` en C++ + AnimBP (graphe uniquement)
 - [ ] 1.4 Stabilisation de la caméra (filtrer le mouvement de tête de l'anim)
 - [ ] 1.5 Pack de locomotion complet (recherche + achat) : marche arrière, strafe, rotation sur place
