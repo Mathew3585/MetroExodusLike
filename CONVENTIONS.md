@@ -78,7 +78,7 @@ Packs achetés ou importés : dans leur propre dossier (`QuantumCharacter/`, `Ch
 
 ## 6. Règles de design Metro (décidées)
 
-- **True FPS** : corps complet visible, caméra dans la tête (réévaluation hybride possible en Phase 3).
+- **Hybride (décidé en Phase 3)** : 3 meshes. Corps sans tête (jambes, torse, bras cachés pour le joueur) + corps complet invisible pour l'ombre + **bras FPS** (`SKM_Arms`) accrochés à la caméra, avec l'arme sur `ik_hand_gun`.
 - **Toujours armé** : pas de touche pour ranger l'arme, sauf zones sûres scriptées.
 - **Main gauche** pour toutes les interactions, l'arme reste en main droite.
 - **Équipement lourd** : les réceptions de grande hauteur arrêtent net le personnage.

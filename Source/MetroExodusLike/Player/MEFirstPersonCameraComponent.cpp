@@ -10,6 +10,12 @@ UMEFirstPersonCameraComponent::UMEFirstPersonCameraComponent()
 
 	bUsePawnControlRotation = true;
 
+	// First person rendering: arms and weapon get their own FOV and are pulled toward the eye, so they never clip into walls
+	bEnableFirstPersonFieldOfView = true;
+	FirstPersonFieldOfView = 70.f;
+	bEnableFirstPersonScale = true;
+	FirstPersonScale = 0.6f;
+
 	SprintBob.StepFrequency = 2.6f;
 	SprintBob.VerticalAmplitude = 1.2f;
 	SprintBob.HorizontalAmplitude = 0.8f;
@@ -47,8 +53,20 @@ void UMEFirstPersonCameraComponent::TickComponent(float DeltaTime, ELevelTick Ti
 	UpdateStrafeTilt(DeltaTime, OffsetRotation);
 	UpdateHeavyLanding(DeltaTime, OffsetRotation);
 
+	ProceduralOffset = FTransform(OffsetRotation, OffsetLocation);
 	ClearAdditiveOffset();
-	AddAdditiveOffset(FTransform(OffsetRotation, OffsetLocation), 0.f);
+	AddAdditiveOffset(ProceduralOffset, 0.f);
+}
+
+void UMEFirstPersonCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
+{
+	// Applies the pawn control rotation to this component, then the additive offset to the view
+	Super::GetCameraView(DeltaTime, DesiredView);
+
+	if (ViewModelPivot)
+	{
+		ViewModelPivot->SetRelativeTransform(ProceduralOffset);
+	}
 }
 
 void UMEFirstPersonCameraComponent::UpdatePlacement(float DeltaTime)

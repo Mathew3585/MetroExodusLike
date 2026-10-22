@@ -7,6 +7,8 @@
 class UMEFirstPersonCameraComponent;
 class UMEInputConfig;
 class UMEInteractionComponent;
+class UMEWeaponComponent;
+class UMEAnimInstance;
 struct FInputActionValue;
 
 /**
@@ -25,6 +27,8 @@ public:
 
 	UMEFirstPersonCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }
 	UMEInteractionComponent* GetInteraction() const { return Interaction; }
+	UMEWeaponComponent* GetWeapons() const { return Weapons; }
+	USkeletalMeshComponent* GetFirstPersonArms() const { return FirstPersonArms; }
 	const UMEInputConfig* GetInputConfig() const { return InputConfig; }
 	bool IsSprinting() const;
 
@@ -50,8 +54,23 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> ShadowMesh;
 
+	/** Moved by the camera with the view, carries the first-person arms. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USceneComponent> ViewModelPivot;
+
+	/** First-person arms (view model) holding the weapon. Only the player sees them. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> FirstPersonArms;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEInteractionComponent> Interaction;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEWeaponComponent> Weapons;
+
+	/** Bones hidden on the visible body (with their children) since the first-person arms replace them. */
+	UPROPERTY(EditDefaultsOnly, Category = "First Person")
+	TArray<FName> BodyBonesHiddenInFirstPerson = { TEXT("upperarm_l"), TEXT("upperarm_r") };
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UMEInputConfig> InputConfig;
@@ -127,6 +146,7 @@ private:
 	void UpdateMaxWalkSpeed();
 	void UpdateBodyRotation(float DeltaSeconds);
 	void UpdateLandingRecovery(float DeltaSeconds);
+	void ForEachBodyAnimInstance(TFunctionRef<void(UMEAnimInstance&)> Function) const;
 
 	FVector2D MoveInput = FVector2D::ZeroVector;
 	bool bWantsToSprint = false;

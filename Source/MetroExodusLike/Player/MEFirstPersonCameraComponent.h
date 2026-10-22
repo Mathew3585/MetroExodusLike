@@ -118,6 +118,10 @@ public:
 	UMEFirstPersonCameraComponent();
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView) override;
+
+	/** The first-person arms pivot: it gets the same procedural motion as the view, so the weapon stays in frame. */
+	void SetViewModelPivot(USceneComponent* Pivot) { ViewModelPivot = Pivot; }
 
 	/** Hold breath (aiming, gas mask...): breathing motion fades out. */
 	UFUNCTION(BlueprintCallable, Category = "Camera|Breathing")
@@ -218,6 +222,12 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<AMECharacter> Character;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USceneComponent> ViewModelPivot;
+
+	/** Procedural offset of this frame (layers 2-5), applied to the view and to the view model. */
+	FTransform ProceduralOffset = FTransform::Identity;
 
 	// Placement
 	FVector SmoothedLocalOffset = FVector::ZeroVector;

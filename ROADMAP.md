@@ -23,7 +23,7 @@ Un tunnel + une station, des humains et quelques mutants, la survie avec masque 
 
 ## Phase 1 — Le corps du joueur (true FPS)
 Choix : **true FPS** — un seul corps complet (`SKM_QuantumCharacter_NoHead`), caméra dans la tête, on voit ses jambes.
-Réévaluation en Phase 3 : rester en true FPS pur ou passer en hybride (bras FPS `SKM_Arms` pour les armes).
+Phase 3 : passage en **hybride** — bras FPS `SKM_Arms` sur la caméra pour l'arme, le corps garde jambes/torse (bras cachés), l'ombre reste complète.
 
 - [x] 1.1 Enhanced Input : Input Actions + Mapping Context (assets) référencés par un DataAsset, bindés en C++
 - [x] 1.2 Marcher / courir / sauter / regarder (testable avec la capsule seule)
@@ -48,8 +48,9 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 **Fini quand :** on peut ouvrir une porte et ramasser un objet.
 
 ## Phase 3 — Première arme
-- [ ] 3.1 `AMEWeaponBase` + `UMEWeaponData` (DataAsset : dégâts, cadence, chargeur…)
-- [ ] 3.2 Arme en main (placeholder) + zones sûres (volume qui range l'arme)
+- [x] 3.0 Retarget des animations du pack AR-15 (Manny → squelette Quantum, `ik_hand_gun` conservé)
+- [x] 3.1 `UMEWeaponData` (DataAsset) + `AMEWeapon` + `UMEWeaponComponent`
+- [ ] 3.2 Bras FPS + AR-15 en main (hybride, First Person Rendering) + zones sûres (volume qui range l'arme)
 - [ ] 3.2b Gestes main gauche branchés sur les interactions (ramasser, porte, interrupteur)
 - [ ] 3.3 Tir hitscan, munitions, rechargement
 - [ ] 3.4 Recul, dispersion, visée (ADS)

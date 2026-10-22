@@ -4,6 +4,7 @@
 #include "Player/MEFirstPersonCameraComponent.h"
 #include "Player/MEAnimInstance.h"
 #include "Interaction/MEInteractionComponent.h"
+#include "Weapons/MEWeaponComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/LocalPlayer.h"
@@ -35,13 +36,29 @@ AMECharacter::AMECharacter()
 	ShadowMesh->SetHiddenInGame(true);
 	ShadowMesh->bCastHiddenShadow = true;
 	ShadowMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// Hidden meshes skip bone updates by default: the shadow would freeze
+	ShadowMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 
 	// Places itself on the head bone every frame and adds the procedural motion
 	FirstPersonCamera = CreateDefaultSubobject<UMEFirstPersonCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCamera->SetRelativeLocation(FVector(0.f, 0.f, BaseEyeHeight)); // Until the first update
 
+	// View model: the camera moves this pivot with the view (bob, breathing, impacts...)
+	ViewModelPivot = CreateDefaultSubobject<USceneComponent>(TEXT("ViewModelPivot"));
+	ViewModelPivot->SetupAttachment(FirstPersonCamera);
+
+	// First-person arms holding the weapon, placed so their head bone sits on the camera
+	FirstPersonArms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonArms"));
+	FirstPersonArms->SetupAttachment(ViewModelPivot);
+	FirstPersonArms->SetRelativeLocationAndRotation(FVector(-0.7f, 0.f, -162.6f), FRotator(0.f, -90.f, 0.f));
+	FirstPersonArms->SetOnlyOwnerSee(true);
+	FirstPersonArms->SetCastShadow(false);
+	FirstPersonArms->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	FirstPersonArms->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::FirstPerson);
+
 	Interaction = CreateDefaultSubobject<UMEInteractionComponent>(TEXT("Interaction"));
+	Weapons = CreateDefaultSubobject<UMEWeaponComponent>(TEXT("Weapons"));
 
 	// Heavy, grounded movement: slow acceleration, little air control
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
@@ -65,8 +82,13 @@ void AMECharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Shadow body copies the visible body's pose instead of running its own animation
-	ShadowMesh->SetLeaderPoseComponent(GetMesh());
+	// The visible body's arms are replaced by the first-person arms.
+	// The shadow body runs its own animation (its AnimBP is set in the Blueprint), so it keeps its arms.
+	for (const FName& Bone : BodyBonesHiddenInFirstPerson)
+	{
+		GetMesh()->HideBoneByName(Bone, PBO_None);
+	}
+	FirstPersonCamera->SetViewModelPivot(ViewModelPivot);
 
 	// Picks up the value edited in the Blueprint
 	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed;
@@ -116,9 +138,18 @@ void AMECharacter::Landed(const FHitResult& Hit)
 	}
 	LandingRecoveryRemaining = LandingRecoveryDuration;
 
-	if (UMEAnimInstance* AnimInstance = Cast<UMEAnimInstance>(GetMesh()->GetAnimInstance()))
+	ForEachBodyAnimInstance([bHeavy](UMEAnimInstance& AnimInstance) { AnimInstance.PlayLanding(bHeavy); });
+}
+
+void AMECharacter::ForEachBodyAnimInstance(TFunctionRef<void(UMEAnimInstance&)> Function) const
+{
+	// Visible body and shadow body animate separately and must play the same one-shots
+	for (const USkeletalMeshComponent* Body : { GetMesh(), ShadowMesh.Get() })
 	{
-		AnimInstance->PlayLanding(bHeavy);
+		if (UMEAnimInstance* AnimInstance = Cast<UMEAnimInstance>(Body->GetAnimInstance()))
+		{
+			Function(*AnimInstance);
+		}
 	}
 }
 
@@ -166,10 +197,8 @@ void AMECharacter::UpdateBodyRotation(float DeltaSeconds)
 	if (!bIsTurningInPlace && FMath::Abs(Offset) > TurnInPlaceThreshold)
 	{
 		bIsTurningInPlace = true;
-		if (UMEAnimInstance* AnimInstance = Cast<UMEAnimInstance>(GetMesh()->GetAnimInstance()))
-		{
-			AnimInstance->PlayTurnInPlace(Offset > 0.f);
-		}
+		const bool bTurnRight = Offset > 0.f;
+		ForEachBodyAnimInstance([bTurnRight](UMEAnimInstance& AnimInstance) { AnimInstance.PlayTurnInPlace(bTurnRight); });
 	}
 
 	if (bIsTurningInPlace)

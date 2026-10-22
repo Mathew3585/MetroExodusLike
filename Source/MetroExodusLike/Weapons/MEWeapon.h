@@ -1,0 +1,43 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "MEWeapon.generated.h"
+
+class UMEWeaponData;
+class UAnimSequenceBase;
+
+/**
+ * A weapon in the world: its mesh, parts and ammo state. Built from a UMEWeaponData.
+ */
+UCLASS()
+class METROEXODUSLIKE_API AMEWeapon : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	AMEWeapon();
+
+	/** Sets up mesh and parts from the data, fills the magazine. */
+	void Initialize(UMEWeaponData* InData);
+
+	/** Plays a weapon-side animation (bolt, magazine...). */
+	void PlayWeaponAnimation(UAnimSequenceBase* Animation);
+
+	UMEWeaponData* GetData() const { return Data; }
+	USkeletalMeshComponent* GetMesh() const { return Mesh; }
+
+	int32 GetAmmoInMagazine() const { return AmmoInMagazine; }
+	int32 GetReserveAmmo() const { return ReserveAmmo; }
+
+protected:
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<USkeletalMeshComponent> Mesh;
+
+private:
+	UPROPERTY(Transient)
+	TObjectPtr<UMEWeaponData> Data;
+
+	int32 AmmoInMagazine = 0;
+	int32 ReserveAmmo = 0;
+};
