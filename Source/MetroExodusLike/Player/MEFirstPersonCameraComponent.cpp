@@ -59,10 +59,14 @@ void UMEFirstPersonCameraComponent::UpdatePlacement(float DeltaTime)
 	const FVector HeadLocal = ViewYaw.UnrotateVector(Character->GetMesh()->GetSocketLocation(HeadBoneName) - ActorLocation);
 	const FVector StableLocal(0.f, 0.f, Character->BaseEyeHeight);
 
+	// In the air the camera mostly ignores the head, so the fall animation does not shake the view
+	const float TargetAirScale = Character->GetCharacterMovement()->IsFalling() ? InAirHeadFollow : 1.f;
+	AirFollowScale = FMath::FInterpTo(AirFollowScale, TargetAirScale, DeltaTime, InAirFollowBlendSpeed);
+
 	FVector TargetLocal;
-	TargetLocal.X = FMath::Lerp(StableLocal.X, HeadLocal.X, HeadFollowHorizontal);
-	TargetLocal.Y = FMath::Lerp(StableLocal.Y, HeadLocal.Y, HeadFollowHorizontal);
-	TargetLocal.Z = FMath::Lerp(StableLocal.Z, HeadLocal.Z, HeadFollowVertical);
+	TargetLocal.X = FMath::Lerp(StableLocal.X, HeadLocal.X, HeadFollowHorizontal * AirFollowScale);
+	TargetLocal.Y = FMath::Lerp(StableLocal.Y, HeadLocal.Y, HeadFollowHorizontal * AirFollowScale);
+	TargetLocal.Z = FMath::Lerp(StableLocal.Z, HeadLocal.Z, HeadFollowVertical * AirFollowScale);
 	TargetLocal += EyeOffset;
 
 	if (PlacementSmoothingSpeed > 0.f && bHasPlacement)

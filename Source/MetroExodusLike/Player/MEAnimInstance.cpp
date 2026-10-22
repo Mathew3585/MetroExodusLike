@@ -98,6 +98,9 @@ void UMEAnimInstance::PlayLanding()
 		return;
 	}
 
-	PlaySlotAnimationAsDynamicMontage(Anim, OneShotSlot, 0.05f, 0.3f);
+	if (UAnimMontage* Montage = PlaySlotAnimationAsDynamicMontage(Anim, OneShotSlot, 0.05f, 0.3f))
+	{
+		Montage_SetPosition(Montage, bHeavy ? HeavyLandingStartTime : LightLandingStartTime);
+	}
 	LandingTimeRemaining = bHeavy ? HeavyLandingDuration : LightLandingDuration;
 }

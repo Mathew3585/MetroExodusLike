@@ -156,6 +156,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Camera|Placement", meta = (ClampMin = "0"))
 	float PlacementSmoothingSpeed = 0.f;
 
+	/** Head follow multiplier while in the air (the fall animation moves the head a lot). */
+	UPROPERTY(EditAnywhere, Category = "Camera|Placement", meta = (ClampMin = "0", ClampMax = "1"))
+	float InAirHeadFollow = 0.2f;
+
+	/** How fast the head follow blends between ground and air. */
+	UPROPERTY(EditAnywhere, Category = "Camera|Placement", meta = (ClampMin = "0"))
+	float InAirFollowBlendSpeed = 6.f;
+
 	// --- Head bob ---
 
 	UPROPERTY(EditAnywhere, Category = "Camera|Head Bob")
@@ -202,6 +210,7 @@ private:
 	// Placement
 	FVector SmoothedLocalOffset = FVector::ZeroVector;
 	bool bHasPlacement = false;
+	float AirFollowScale = 1.f;
 
 	// Head bob
 	float StepPhase = 0.f;

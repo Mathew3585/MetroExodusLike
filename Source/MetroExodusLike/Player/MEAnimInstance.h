@@ -86,12 +86,19 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "cm/s"))
 	float HeavyLandingSpeed = 650.f;
 
-	/** How long the landing animation is kept before blending back (the clips have a long recovery). */
+	/** Time of foot contact in the clip: the clips start in the air, we skip to the impact. */
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "s"))
-	float LightLandingDuration = 0.5f;
+	float LightLandingStartTime = 0.48f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "s"))
-	float HeavyLandingDuration = 0.9f;
+	float HeavyLandingStartTime = 0.95f;
+
+	/** How long the landing animation is kept after the impact before blending back (the clips have a long recovery). */
+	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "s"))
+	float LightLandingDuration = 0.7f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "s"))
+	float HeavyLandingDuration = 1.1f;
 
 	/** Blend out time when movement interrupts a one-shot animation. */
 	UPROPERTY(EditDefaultsOnly, Category = "Animations", meta = (Units = "s"))
