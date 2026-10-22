@@ -25,8 +25,12 @@ public:
 	UMEFirstPersonCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }
 	bool IsSprinting() const;
 
+	/** True while absorbing a heavy landing: no movement, no jump. */
+	bool IsLandingStunned() const { return LandingStunRemaining > 0.f; }
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void Landed(const FHitResult& Hit) override;
 	virtual void NotifyControllerChanged() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
@@ -72,6 +76,34 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement|Body Rotation", meta = (ClampMin = "0"))
 	float MovingTurnSpeed = 15.f;
 
+	// --- Landing (heavy gear: weapon, backpack, vest) ---
+
+	/** Landings slower than this have no effect. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "cm/s"))
+	float LightLandingSpeed = 300.f;
+
+	/** Landings faster than this are heavy: full stop, absorb, look down. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "cm/s"))
+	float HeavyLandingSpeed = 650.f;
+
+	/** Light landing: speed multiplier right after the impact, back to 1 over the recovery time. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", ClampMax = "1"))
+	float LightLandingSpeedScale = 0.75f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "s"))
+	float LightLandingRecoveryTime = 0.35f;
+
+	/** Heavy landing: time the character cannot move or jump. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "s"))
+	float HeavyLandingStunTime = 1.1f;
+
+	/** Heavy landing: speed multiplier when the stun ends, back to 1 over the recovery time. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", ClampMax = "1"))
+	float HeavyLandingSpeedScale = 0.4f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "s"))
+	float HeavyLandingRecoveryTime = 0.6f;
+
 private:
 	void Move(const FInputActionValue& Value);
 	void StopMoving();
@@ -83,8 +115,17 @@ private:
 	void CrouchReleased();
 	void UpdateMaxWalkSpeed();
 	void UpdateBodyRotation(float DeltaSeconds);
+	void UpdateLandingRecovery(float DeltaSeconds);
 
 	FVector2D MoveInput = FVector2D::ZeroVector;
 	bool bWantsToSprint = false;
 	bool bIsTurningInPlace = false;
+
+	// Landing
+	float FallSpeed = 0.f;
+	float LandingStunRemaining = 0.f;
+	float LandingRecoveryRemaining = 0.f;
+	float LandingRecoveryDuration = 0.f;
+	float LandingRecoveryStartScale = 1.f;
+	float LandingSpeedScale = 1.f;
 };

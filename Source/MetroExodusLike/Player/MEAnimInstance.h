@@ -7,6 +7,24 @@
 class AMECharacter;
 class UAnimSequenceBase;
 
+/** A landing clip. The GASP clips start in the air, so we skip to the foot contact. */
+USTRUCT(BlueprintType)
+struct FMELandingAnimation
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UAnimSequenceBase> Animation;
+
+	/** Time of foot contact in the clip. */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "s"))
+	float ContactTime = 0.f;
+
+	/** How long the clip is kept after the contact before blending back (the clips have a long recovery). */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "s"))
+	float HoldTime = 0.7f;
+};
+
 /**
  * Computes every locomotion variable the AnimBP needs, and plays the one-shot
  * animations (turn in place, landing) on the default slot.
@@ -20,8 +38,11 @@ class METROEXODUSLIKE_API UMEAnimInstance : public UAnimInstance
 public:
 	UMEAnimInstance();
 
-	/** Plays the turn-in-place step animation. Returns its duration in seconds (0 if none). */
-	float PlayTurnInPlace(bool bTurnRight);
+	/** Plays the turn-in-place step animation. */
+	void PlayTurnInPlace(bool bTurnRight);
+
+	/** Plays the landing clip. Heavy always plays the stop-and-absorb clip, light depends on movement. */
+	void PlayLanding(bool bHeavy);
 
 protected:
 	virtual void NativeInitializeAnimation() override;
@@ -57,6 +78,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Animations")
 	FName OneShotSlot = TEXT("DefaultSlot");
 
+	/** Blend out time when movement interrupts a one-shot animation. */
+	UPROPERTY(EditDefaultsOnly, Category = "Animations", meta = (Units = "s"))
+	float InterruptBlendOut = 0.2f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Turn In Place")
 	TObjectPtr<UAnimSequenceBase> TurnLeft;
 
@@ -72,45 +97,31 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Turn In Place", meta = (ClampMin = "0.1"))
 	float TurnPlayRate = 1.4f;
 
+	/** Light landing while standing still. Interrupted by movement. */
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing")
-	TObjectPtr<UAnimSequenceBase> LandLight;
+	FMELandingAnimation LandLight;
 
+	/** Light landing while moving forward. Plays through the movement. */
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing")
-	TObjectPtr<UAnimSequenceBase> LandHeavy;
+	FMELandingAnimation LandLightMoving;
 
-	/** Landings slower than this play no animation. */
-	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "cm/s"))
-	float LightLandingSpeed = 300.f;
+	/** Heavy landing: the character stops, absorbs and looks down. Never interrupted. */
+	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing")
+	FMELandingAnimation LandHeavy;
 
-	/** Landings faster than this play the heavy animation. */
-	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "cm/s"))
-	float HeavyLandingSpeed = 650.f;
-
-	/** Time of foot contact in the clip: the clips start in the air, we skip to the impact. */
-	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "s"))
-	float LightLandingStartTime = 0.48f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "s"))
-	float HeavyLandingStartTime = 0.95f;
-
-	/** How long the landing animation is kept after the impact before blending back (the clips have a long recovery). */
-	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "s"))
-	float LightLandingDuration = 0.7f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (Units = "s"))
-	float HeavyLandingDuration = 1.1f;
-
-	/** Blend out time when movement interrupts a one-shot animation. */
-	UPROPERTY(EditDefaultsOnly, Category = "Animations", meta = (Units = "s"))
-	float InterruptBlendOut = 0.2f;
+	/** Light landings use the moving clip only when moving within this angle of the body's forward. */
+	UPROPERTY(EditDefaultsOnly, Category = "Animations|Landing", meta = (ClampMin = "0", ClampMax = "180", Units = "Degrees"))
+	float MovingLandingMaxAngle = 60.f;
 
 private:
-	void PlayLanding();
+	void PlayOneShot(UAnimSequenceBase* Animation, float PlayRate, float StartTime, float HoldTime, bool bInterruptible);
 
 	UPROPERTY(Transient)
 	TObjectPtr<AMECharacter> Character;
 
-	bool bWasInAir = false;
-	float FallSpeed = 0.f;
-	float LandingTimeRemaining = 0.f;
+	/** Remaining time before the current one-shot blends out (0 = until it ends). */
+	float OneShotTimeRemaining = 0.f;
+
+	/** Whether movement may cut the current one-shot. */
+	bool bOneShotInterruptible = true;
 };

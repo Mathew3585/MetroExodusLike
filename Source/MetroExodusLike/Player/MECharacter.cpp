@@ -73,7 +73,71 @@ void AMECharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	// Speed of the fall, read in Landed (the movement component may have cleared it by then)
+	if (GetCharacterMovement()->IsFalling())
+	{
+		FallSpeed = FMath::Max(0.f, -GetCharacterMovement()->Velocity.Z);
+	}
+
 	UpdateBodyRotation(DeltaSeconds);
+	UpdateLandingRecovery(DeltaSeconds);
+}
+
+void AMECharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	const float ImpactSpeed = FMath::Max(FallSpeed, -GetCharacterMovement()->Velocity.Z);
+	FallSpeed = 0.f;
+
+	if (ImpactSpeed < LightLandingSpeed)
+	{
+		return;
+	}
+
+	const bool bHeavy = ImpactSpeed >= HeavyLandingSpeed;
+	if (bHeavy)
+	{
+		// The gear's weight stops us dead
+		GetCharacterMovement()->StopMovementImmediately();
+		LandingStunRemaining = HeavyLandingStunTime;
+		LandingRecoveryDuration = HeavyLandingRecoveryTime;
+		LandingRecoveryStartScale = HeavyLandingSpeedScale;
+		FirstPersonCamera->PlayHeavyLanding(HeavyLandingStunTime + HeavyLandingRecoveryTime);
+	}
+	else
+	{
+		LandingStunRemaining = 0.f;
+		LandingRecoveryDuration = LightLandingRecoveryTime;
+		LandingRecoveryStartScale = LightLandingSpeedScale;
+	}
+	LandingRecoveryRemaining = LandingRecoveryDuration;
+
+	if (UMEAnimInstance* AnimInstance = Cast<UMEAnimInstance>(GetMesh()->GetAnimInstance()))
+	{
+		AnimInstance->PlayLanding(bHeavy);
+	}
+}
+
+void AMECharacter::UpdateLandingRecovery(float DeltaSeconds)
+{
+	if (LandingStunRemaining > 0.f)
+	{
+		LandingStunRemaining -= DeltaSeconds;
+		LandingSpeedScale = 0.f;
+	}
+	else if (LandingRecoveryRemaining > 0.f)
+	{
+		LandingRecoveryRemaining = FMath::Max(0.f, LandingRecoveryRemaining - DeltaSeconds);
+		const float Alpha = 1.f - LandingRecoveryRemaining / LandingRecoveryDuration;
+		LandingSpeedScale = FMath::Lerp(LandingRecoveryStartScale, 1.f, Alpha);
+	}
+	else
+	{
+		LandingSpeedScale = 1.f;
+	}
+
+	UpdateMaxWalkSpeed();
 }
 
 void AMECharacter::UpdateBodyRotation(float DeltaSeconds)
@@ -164,6 +228,11 @@ void AMECharacter::Move(const FInputActionValue& Value)
 	// X = right, Y = forward, relative to the view (the body may lag behind it)
 	MoveInput = Value.Get<FVector2D>();
 
+	if (IsLandingStunned())
+	{
+		return;
+	}
+
 	const FRotationMatrix ViewYaw(FRotator(0.f, GetControlRotation().Yaw, 0.f));
 	AddMovementInput(ViewYaw.GetUnitAxis(EAxis::X), MoveInput.Y);
 	AddMovementInput(ViewYaw.GetUnitAxis(EAxis::Y), MoveInput.X);
@@ -206,6 +275,11 @@ void AMECharacter::StopSprint()
 
 void AMECharacter::JumpPressed()
 {
+	if (IsLandingStunned())
+	{
+		return;
+	}
+
 	// Jump while crouched stands up instead
 	if (bIsCrouched)
 	{
@@ -238,5 +312,7 @@ void AMECharacter::CrouchReleased()
 
 void AMECharacter::UpdateMaxWalkSpeed()
 {
-	GetCharacterMovement()->MaxWalkSpeed = IsSprinting() ? SprintSpeed : WalkSpeed;
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	Movement->MaxWalkSpeed = (IsSprinting() ? SprintSpeed : WalkSpeed) * LandingSpeedScale;
+	Movement->MaxWalkSpeedCrouched = CrouchSpeed * LandingSpeedScale;
 }

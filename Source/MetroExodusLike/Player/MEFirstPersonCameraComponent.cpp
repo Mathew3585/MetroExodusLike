@@ -45,6 +45,7 @@ void UMEFirstPersonCameraComponent::TickComponent(float DeltaTime, ELevelTick Ti
 	UpdateBreathing(DeltaTime, OffsetLocation, OffsetRotation);
 	UpdateImpacts(DeltaTime, OffsetLocation, OffsetRotation);
 	UpdateStrafeTilt(DeltaTime, OffsetRotation);
+	UpdateHeavyLanding(DeltaTime, OffsetRotation);
 
 	ClearAdditiveOffset();
 	AddAdditiveOffset(FTransform(OffsetRotation, OffsetLocation), 0.f);
@@ -177,4 +178,34 @@ void UMEFirstPersonCameraComponent::UpdateStrafeTilt(float DeltaTime, FRotator& 
 
 	StrafeRoll = FMath::FInterpTo(StrafeRoll, Sideways * StrafeRollAngle, DeltaTime, StrafeRollSpeed);
 	OutRotation.Roll += StrafeRoll;
+}
+
+void UMEFirstPersonCameraComponent::PlayHeavyLanding(float Duration)
+{
+	HeavyLandingElapsed = 0.f;
+	HeavyLandingDuration = FMath::Max(Duration, HeavyLandingDropTime + 0.1f);
+}
+
+void UMEFirstPersonCameraComponent::UpdateHeavyLanding(float DeltaTime, FRotator& OutRotation)
+{
+	if (HeavyLandingElapsed >= HeavyLandingDuration)
+	{
+		return;
+	}
+	HeavyLandingElapsed += DeltaTime;
+
+	// Fast drop on impact, hold while absorbing, then ease back up
+	float Weight;
+	if (HeavyLandingElapsed < HeavyLandingDropTime)
+	{
+		const float Drop = HeavyLandingElapsed / HeavyLandingDropTime;
+		Weight = 1.f - FMath::Square(1.f - Drop);
+	}
+	else
+	{
+		const float Release = (HeavyLandingElapsed - HeavyLandingDropTime) / (HeavyLandingDuration - HeavyLandingDropTime);
+		Weight = 1.f - FMath::SmoothStep(0.35f, 1.f, Release);
+	}
+
+	OutRotation.Pitch -= HeavyLandingLookDown * Weight;
 }

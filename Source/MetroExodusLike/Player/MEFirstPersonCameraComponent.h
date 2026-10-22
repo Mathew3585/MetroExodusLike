@@ -131,6 +131,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Camera|Impacts")
 	void AddImpactKick(float Kick) { SpringVelocity += Kick; }
 
+	/** Heavy landing: the view drops to the ground, then comes back up over Duration. */
+	void PlayHeavyLanding(float Duration);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -188,6 +191,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Camera|Impacts")
 	FMEImpactSettings Impacts;
 
+	/** How far the view drops toward the ground on a heavy landing. */
+	UPROPERTY(EditAnywhere, Category = "Camera|Impacts", meta = (ClampMin = "0", ClampMax = "80", Units = "Degrees"))
+	float HeavyLandingLookDown = 22.f;
+
+	/** Time for the view to drop on impact. */
+	UPROPERTY(EditAnywhere, Category = "Camera|Impacts", meta = (ClampMin = "0.01", Units = "s"))
+	float HeavyLandingDropTime = 0.15f;
+
 	// --- Strafe tilt ---
 
 	/** Roll when strafing at full bob speed. Positive leans into the movement, 0 disables. */
@@ -203,6 +214,7 @@ private:
 	void UpdateBreathing(float DeltaTime, FVector& OutLocation, FRotator& OutRotation);
 	void UpdateImpacts(float DeltaTime, FVector& OutLocation, FRotator& OutRotation);
 	void UpdateStrafeTilt(float DeltaTime, FRotator& OutRotation);
+	void UpdateHeavyLanding(float DeltaTime, FRotator& OutRotation);
 
 	UPROPERTY(Transient)
 	TObjectPtr<AMECharacter> Character;
@@ -231,4 +243,8 @@ private:
 
 	// Strafe tilt
 	float StrafeRoll = 0.f;
+
+	// Heavy landing look-down
+	float HeavyLandingElapsed = 0.f;
+	float HeavyLandingDuration = 0.f;
 };

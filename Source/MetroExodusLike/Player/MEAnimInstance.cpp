@@ -7,6 +7,13 @@ UMEAnimInstance::UMEAnimInstance()
 	// Movement and rotation are driven in C++ (character movement + body rotation).
 	// Root motion baked in the clips (landings move ~2 m forward, turns rotate) must never move the character.
 	RootMotionMode = ERootMotionMode::NoRootMotionExtraction;
+
+	LandLight.ContactTime = 0.48f;
+	LandLight.HoldTime = 0.7f;
+	LandLightMoving.ContactTime = 0.48f;
+	LandLightMoving.HoldTime = 0.5f;
+	LandHeavy.ContactTime = 0.95f;
+	LandHeavy.HoldTime = 1.2f;
 }
 
 void UMEAnimInstance::NativeInitializeAnimation()
@@ -40,67 +47,70 @@ void UMEAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	AimPitch = FRotator::NormalizeAxis(Character->GetBaseAimRotation().Pitch);
 
-	// Landing detection
-	if (bIsInAir)
+	if (!IsSlotActive(OneShotSlot))
 	{
-		FallSpeed = FMath::Max(0.f, -Velocity.Z);
+		return;
 	}
-	else if (bWasInAir)
-	{
-		PlayLanding();
-	}
-	bWasInAir = bIsInAir;
 
-	// One-shots never block movement: moving or jumping blends them out
-	if ((bShouldMove || bIsInAir) && IsSlotActive(OneShotSlot))
+	// Jumping always cuts a one-shot, moving only cuts the interruptible ones (turns, standing landings)
+	if (bIsInAir || (bShouldMove && bOneShotInterruptible))
 	{
 		StopSlotAnimation(InterruptBlendOut, OneShotSlot);
-		LandingTimeRemaining = 0.f;
+		OneShotTimeRemaining = 0.f;
+		return;
 	}
 
-	if (LandingTimeRemaining > 0.f)
+	if (OneShotTimeRemaining > 0.f)
 	{
-		LandingTimeRemaining -= DeltaSeconds;
-		if (LandingTimeRemaining <= 0.f)
+		OneShotTimeRemaining -= DeltaSeconds;
+		if (OneShotTimeRemaining <= 0.f)
 		{
 			StopSlotAnimation(InterruptBlendOut, OneShotSlot);
 		}
 	}
 }
 
-float UMEAnimInstance::PlayTurnInPlace(bool bTurnRight)
+void UMEAnimInstance::PlayTurnInPlace(bool bTurnRight)
 {
 	UAnimSequenceBase* Anim = bIsCrouching
 		? (bTurnRight ? CrouchTurnRight : CrouchTurnLeft)
 		: (bTurnRight ? TurnRight : TurnLeft);
 
-	if (!Anim)
-	{
-		return 0.f;
-	}
-
-	LandingTimeRemaining = 0.f;
-	PlaySlotAnimationAsDynamicMontage(Anim, OneShotSlot, 0.15f, 0.3f, TurnPlayRate);
-	return Anim->GetPlayLength() / TurnPlayRate;
+	PlayOneShot(Anim, TurnPlayRate, 0.f, 0.f, true);
 }
 
-void UMEAnimInstance::PlayLanding()
+void UMEAnimInstance::PlayLanding(bool bHeavy)
 {
-	if (FallSpeed < LightLandingSpeed || bIsCrouching)
+	if (bHeavy)
+	{
+		PlayOneShot(LandHeavy.Animation, 1.f, LandHeavy.ContactTime, LandHeavy.HoldTime, false);
+		return;
+	}
+
+	// Crouched light landings (walking off a ledge) need no animation
+	if (bIsCrouching)
 	{
 		return;
 	}
 
-	const bool bHeavy = FallSpeed >= HeavyLandingSpeed;
-	UAnimSequenceBase* Anim = bHeavy ? LandHeavy : LandLight;
-	if (!Anim)
+	const bool bMovingForward = bShouldMove && FMath::Abs(Direction) <= MovingLandingMaxAngle;
+	const FMELandingAnimation& Landing = bMovingForward ? LandLightMoving : LandLight;
+	PlayOneShot(Landing.Animation, 1.f, Landing.ContactTime, Landing.HoldTime, !bMovingForward);
+}
+
+void UMEAnimInstance::PlayOneShot(UAnimSequenceBase* Animation, float PlayRate, float StartTime, float HoldTime, bool bInterruptible)
+{
+	if (!Animation)
 	{
 		return;
 	}
 
-	if (UAnimMontage* Montage = PlaySlotAnimationAsDynamicMontage(Anim, OneShotSlot, 0.05f, 0.3f))
+	UAnimMontage* Montage = PlaySlotAnimationAsDynamicMontage(Animation, OneShotSlot, 0.1f, 0.3f, PlayRate);
+	if (Montage && StartTime > 0.f)
 	{
-		Montage_SetPosition(Montage, bHeavy ? HeavyLandingStartTime : LightLandingStartTime);
+		Montage_SetPosition(Montage, StartTime);
 	}
-	LandingTimeRemaining = bHeavy ? HeavyLandingDuration : LightLandingDuration;
+
+	OneShotTimeRemaining = HoldTime;
+	bOneShotInterruptible = bInterruptible;
 }
