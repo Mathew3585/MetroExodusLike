@@ -5,7 +5,7 @@
 #include "MEPlayerController.generated.h"
 
 /**
- * Player controller. Will own input mapping setup and UI (menus, prompts).
+ * Player controller. Will own UI (menus, prompts).
  */
 UCLASS()
 class METROEXODUSLIKE_API AMEPlayerController : public APlayerController

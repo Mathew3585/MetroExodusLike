@@ -21,14 +21,20 @@ Un tunnel + une station, des humains et quelques mutants, la survie avec masque 
 
 **Fini quand :** le projet compile, PIE démarre sur la map de test avec notre GameMode.
 
-## Phase 1 — Le corps du joueur
-- [ ] 1.1 Enhanced Input en C++ (Input Actions + Mapping Context assignés via data)
-- [ ] 1.2 Marcher / courir / sauter / regarder
-- [ ] 1.3 S'accroupir (transition de caméra fluide)
-- [ ] 1.4 Head bob + inclinaison légère de caméra (le « poids » Metro)
-- [ ] 1.5 Bruits de pas selon la surface (Physical Materials)
+## Phase 1 — Le corps du joueur (true FPS)
+Choix : **true FPS** — un seul corps complet (`SKM_QuantumCharacter_NoHead`), caméra dans la tête, on voit ses jambes.
+Réévaluation en Phase 3 : rester en true FPS pur ou passer en hybride (bras FPS `SKM_Arms` pour les armes).
 
-**Fini quand :** se déplacer dans la greybox est agréable et « lourd ».
+- [ ] 1.1 Enhanced Input : Input Actions + Mapping Context (assets) référencés par un DataAsset, bindés en C++
+- [ ] 1.2 Marcher / courir / sauter / regarder (testable avec la capsule seule)
+- [ ] 1.3 Corps true FPS : mesh NoHead, caméra sur le bone de la tête, `UMEAnimInstance` en C++ + AnimBP (graphe uniquement)
+- [ ] 1.4 Stabilisation de la caméra (filtrer le mouvement de tête de l'anim)
+- [ ] 1.5 Pack de locomotion complet (recherche + achat) : marche arrière, strafe, rotation sur place
+- [ ] 1.6 S'accroupir (transition de caméra fluide)
+- [ ] 1.7 Poids Metro : inertie, inclinaison légère de caméra
+- [ ] 1.8 Bruits de pas selon la surface (Physical Materials + anim notifies)
+
+**Fini quand :** se déplacer est agréable et « lourd », et on voit son corps de façon crédible en regardant en bas.
 
 ## Phase 2 — Interaction
 - [ ] 2.1 Interface `IMEInteractable` + traces depuis la caméra
