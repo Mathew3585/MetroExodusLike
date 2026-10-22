@@ -34,4 +34,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
 	TObjectPtr<UInputAction> CrouchAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
+	TObjectPtr<UInputAction> InteractAction;
 };

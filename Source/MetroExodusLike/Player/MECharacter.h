@@ -6,6 +6,7 @@
 
 class UMEFirstPersonCameraComponent;
 class UMEInputConfig;
+class UMEInteractionComponent;
 struct FInputActionValue;
 
 /**
@@ -23,10 +24,15 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	UMEFirstPersonCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }
+	UMEInteractionComponent* GetInteraction() const { return Interaction; }
+	const UMEInputConfig* GetInputConfig() const { return InputConfig; }
 	bool IsSprinting() const;
 
 	/** True while absorbing a heavy landing: no movement, no jump. */
 	bool IsLandingStunned() const { return LandingStunRemaining > 0.f; }
+
+	/** Interactions need both feet on the ground and no landing stun. */
+	bool CanInteract() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -43,6 +49,9 @@ protected:
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> ShadowMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEInteractionComponent> Interaction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UMEInputConfig> InputConfig;
@@ -113,6 +122,8 @@ private:
 	void JumpPressed();
 	void CrouchPressed();
 	void CrouchReleased();
+	void InteractPressed();
+	void InteractReleased();
 	void UpdateMaxWalkSpeed();
 	void UpdateBodyRotation(float DeltaSeconds);
 	void UpdateLandingRecovery(float DeltaSeconds);

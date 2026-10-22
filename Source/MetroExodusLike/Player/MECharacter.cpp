@@ -3,6 +3,7 @@
 #include "Input/MEInputConfig.h"
 #include "Player/MEFirstPersonCameraComponent.h"
 #include "Player/MEAnimInstance.h"
+#include "Interaction/MEInteractionComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/LocalPlayer.h"
@@ -39,6 +40,8 @@ AMECharacter::AMECharacter()
 	FirstPersonCamera = CreateDefaultSubobject<UMEFirstPersonCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCamera->SetRelativeLocation(FVector(0.f, 0.f, BaseEyeHeight)); // Until the first update
+
+	Interaction = CreateDefaultSubobject<UMEInteractionComponent>(TEXT("Interaction"));
 
 	// Heavy, grounded movement: slow acceleration, little air control
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
@@ -221,6 +224,23 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(InputConfig->SprintAction, ETriggerEvent::Completed, this, &AMECharacter::StopSprint);
 	Input->BindAction(InputConfig->CrouchAction, ETriggerEvent::Started, this, &AMECharacter::CrouchPressed);
 	Input->BindAction(InputConfig->CrouchAction, ETriggerEvent::Completed, this, &AMECharacter::CrouchReleased);
+	Input->BindAction(InputConfig->InteractAction, ETriggerEvent::Started, this, &AMECharacter::InteractPressed);
+	Input->BindAction(InputConfig->InteractAction, ETriggerEvent::Completed, this, &AMECharacter::InteractReleased);
+}
+
+bool AMECharacter::CanInteract() const
+{
+	return !IsLandingStunned() && !GetCharacterMovement()->IsFalling();
+}
+
+void AMECharacter::InteractPressed()
+{
+	Interaction->BeginInteract();
+}
+
+void AMECharacter::InteractReleased()
+{
+	Interaction->EndInteract();
 }
 
 void AMECharacter::Move(const FInputActionValue& Value)

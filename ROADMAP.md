@@ -37,15 +37,20 @@ Réévaluation en Phase 3 : rester en true FPS pur ou passer en hybride (bras FP
 **Fini quand :** se déplacer est agréable et « lourd », et on voit son corps de façon crédible en regardant en bas.
 
 ## Phase 2 — Interaction
-- [ ] 2.1 Interface `IMEInteractable` + traces depuis la caméra
-- [ ] 2.2 Prompt minimal à l'écran (petit texte contextuel)
-- [ ] 2.3 Premiers interactables : porte, objet ramassable, interrupteur
+Règle Metro : **toujours armé** (pas de touche pour ranger l'arme, sauf zones sûres scriptées).
+Toutes les interactions se font **main gauche**, l'arme reste en main droite. Chaque interactable déclare son
+geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche s'y branchera en Phase 3.
+
+- [ ] 2.1 Interface `IMEInteractable` (geste + durée de maintien) + `UMEInteractionComponent` (trace depuis la caméra, focus, maintien)
+- [ ] 2.2 Prompt minimal à l'écran (« [E] Ouvrir » + barre de maintien), widget construit en C++
+- [ ] 2.3 Premiers interactables : porte (s'ouvre à l'opposé du joueur), objet ramassable, interrupteur / disjoncteur (maintien)
 
 **Fini quand :** on peut ouvrir une porte et ramasser un objet.
 
 ## Phase 3 — Première arme
 - [ ] 3.1 `AMEWeaponBase` + `UMEWeaponData` (DataAsset : dégâts, cadence, chargeur…)
-- [ ] 3.2 Bras first-person + arme en main (placeholder)
+- [ ] 3.2 Arme en main (placeholder) + zones sûres (volume qui range l'arme)
+- [ ] 3.2b Gestes main gauche branchés sur les interactions (ramasser, porte, interrupteur)
 - [ ] 3.3 Tir hitscan, munitions, rechargement
 - [ ] 3.4 Recul, dispersion, visée (ADS)
 - [ ] 3.5 Cibles avec santé (`UMEHealthComponent`, réutilisable partout)
