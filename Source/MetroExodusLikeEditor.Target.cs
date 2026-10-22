@@ -11,5 +11,6 @@ public class MetroExodusLikeEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V7;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
 		ExtraModuleNames.Add("MetroExodusLike");
+		ExtraModuleNames.Add("MetroExodusLikeEditor");
 	}
 }
