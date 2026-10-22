@@ -78,8 +78,9 @@ Packs achetés ou importés : dans leur propre dossier (`QuantumCharacter/`, `Ch
 
 ## 6. Règles de design Metro (décidées)
 
-- **Hybride avec jambes (décidé en Phase 3)** : corps visible = jambes + torse en modules (sans bras ni tête, haut des bras replié), bras FPS + arme FPS sur la caméra, corps du monde complet + arme du monde invisibles (ombre, IA). Actions spéciales (escalade, takedown…) : « moment full body », on affiche le corps du monde.
+- **Hybride avec jambes (décidé en Phase 3)**, personnage **MetaHuman** (`Content/Characters/Player/`) : le MetaHuman complet (corps + tenue + visage) = corps du monde invisible (ombre, IA) avec l'arme du monde ; des **meshes découpés par script** (Geometry Script, par os dominant) dans `Characters/Player/FirstPerson/` : `SKM_Player_Arms_*` = bras FPS (coupés à l'épaule) et `SKM_Player_Legs_*` = corps visible (sans bras ni tête). Actions spéciales (escalade, takedown…) : « moment full body », on affiche le corps du monde.
 - **Near clip plane à 2 cm** (`DefaultEngine.ini`) : l'arrière de l'arme est à quelques cm de l'œil.
+- **Animations MetaHuman** : toujours **retargetées** sur `metahuman_base_skel` (jamais « compatible skeletons » : orientations d'os différentes). Le squelette MetaHuman est partagé, les proportions viennent du mesh : mesurer les poses avec `optional_skeletal_mesh`. Pas d'os `ik_*` : l'arme est tenue par `hand_r` + `GripOffset` (DataAsset de l'arme).
 - **Toujours armé** : pas de touche pour ranger l'arme, sauf zones sûres scriptées.
 - **Main gauche** pour toutes les interactions, l'arme reste en main droite.
 - **Équipement lourd** : les réceptions de grande hauteur arrêtent net le personnage.

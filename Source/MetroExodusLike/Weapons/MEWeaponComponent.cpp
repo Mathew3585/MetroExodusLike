@@ -53,7 +53,8 @@ void UMEWeaponComponent::Equip(UMEWeaponData* WeaponData)
 	Weapon->Initialize(WeaponData, true);
 
 	USkeletalMeshComponent* Arms = Character->GetFirstPersonArms();
-	Weapon->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponData->ArmsAttachBone);
+	Weapon->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponData->GripBone);
+	Weapon->SetActorRelativeTransform(WeaponData->GripOffset);
 
 	if (UMEFirstPersonAnimInstance* ArmsAnim = Cast<UMEFirstPersonAnimInstance>(Arms->GetAnimInstance()))
 	{
@@ -63,8 +64,8 @@ void UMEWeaponComponent::Equip(UMEWeaponData* WeaponData)
 	// World weapon, in the world body's hands: casts the shadow, seen by the AI
 	WorldWeapon = GetWorld()->SpawnActor<AMEWeapon>(WeaponClass, Params);
 	WorldWeapon->Initialize(WeaponData, false);
-	WorldWeapon->AttachToComponent(Character->GetWorldBody(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponData->BodyAttachBone);
-	WorldWeapon->SetActorRelativeTransform(WeaponData->BodyGripOffset);
+	WorldWeapon->AttachToComponent(Character->GetWorldBody(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponData->GripBone);
+	WorldWeapon->SetActorRelativeTransform(WeaponData->GripOffset);
 
 	Character->SetBodyWeaponPose(WeaponData->BodyHoldPose);
 

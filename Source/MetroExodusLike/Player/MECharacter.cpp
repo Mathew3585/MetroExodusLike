@@ -30,6 +30,8 @@ AMECharacter::AMECharacter()
 	USkeletalMeshComponent* Body = GetMesh();
 	Body->SetRelativeLocationAndRotation(FVector(0.f, 0.f, -88.f), FRotator(0.f, -90.f, 0.f));
 	Body->SetCastShadow(false);
+	// Always next to the camera, and the cut first-person meshes only exist in LOD 0 (ForcedLOD is 1-based)
+	Body->SetForcedLOD(1);
 
 	ShadowMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ShadowMesh"));
 	ShadowMesh->SetupAttachment(Body);
@@ -56,6 +58,7 @@ AMECharacter::AMECharacter()
 	FirstPersonArms->SetCastShadow(false);
 	FirstPersonArms->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	FirstPersonArms->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::FirstPerson);
+	FirstPersonArms->SetForcedLOD(1);
 
 	Interaction = CreateDefaultSubobject<UMEInteractionComponent>(TEXT("Interaction"));
 	Weapons = CreateDefaultSubobject<UMEWeaponComponent>(TEXT("Weapons"));
@@ -82,26 +85,21 @@ void AMECharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Visible body: legs (GetMesh) + torso and gear parts copying its pose
-	TArray<USkeletalMeshComponent*> VisibleBody = { GetMesh() };
-	for (USkeletalMesh* Part : VisibleBodyParts)
+	// Each layer is a leader mesh plus parts (clothing, face...) copying its pose
+	for (USkeletalMeshComponent* Part : AddMeshParts(GetMesh(), VisibleBodyParts))
 	{
-		USkeletalMeshComponent* PartComponent = NewObject<USkeletalMeshComponent>(this);
-		PartComponent->SetSkeletalMeshAsset(Part);
-		PartComponent->SetCastShadow(false);
-		PartComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		PartComponent->SetupAttachment(GetMesh());
-		PartComponent->SetLeaderPoseComponent(GetMesh());
-		PartComponent->RegisterComponent();
-		VisibleBody.Add(PartComponent);
+		Part->SetCastShadow(false);
 	}
-
-	for (USkeletalMeshComponent* Component : VisibleBody)
+	for (USkeletalMeshComponent* Part : AddMeshParts(FirstPersonArms, FirstPersonArmsParts))
 	{
-		for (const FName& Bone : VisibleBodyHiddenBones)
-		{
-			Component->HideBoneByName(Bone, PBO_None);
-		}
+		Part->SetOnlyOwnerSee(true);
+		Part->SetCastShadow(false);
+		Part->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::FirstPerson);
+	}
+	for (USkeletalMeshComponent* Part : AddMeshParts(ShadowMesh, WorldBodyParts))
+	{
+		Part->SetHiddenInGame(true);
+		Part->bCastHiddenShadow = true;
 	}
 
 	FirstPersonCamera->SetViewModelPivot(ViewModelPivot);
@@ -155,6 +153,24 @@ void AMECharacter::Landed(const FHitResult& Hit)
 	LandingRecoveryRemaining = LandingRecoveryDuration;
 
 	ForEachBodyAnimInstance([bHeavy](UMEAnimInstance& AnimInstance) { AnimInstance.PlayLanding(bHeavy); });
+}
+
+TArray<USkeletalMeshComponent*> AMECharacter::AddMeshParts(USkeletalMeshComponent* Leader, const TArray<TObjectPtr<USkeletalMesh>>& Meshes)
+{
+	TArray<USkeletalMeshComponent*> Parts;
+	for (USkeletalMesh* PartMesh : Meshes)
+	{
+		USkeletalMeshComponent* Part = NewObject<USkeletalMeshComponent>(this);
+		Part->SetSkeletalMeshAsset(PartMesh);
+		Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Part->SetupAttachment(Leader);
+		Part->SetLeaderPoseComponent(Leader);
+		// Same detail level as the leader, cut meshes only exist in LOD 0
+		Part->SetForcedLOD(Leader->GetForcedLOD());
+		Part->RegisterComponent();
+		Parts.Add(Part);
+	}
+	return Parts;
 }
 
 void AMECharacter::SetBodyWeaponPose(UAnimSequenceBase* Pose)

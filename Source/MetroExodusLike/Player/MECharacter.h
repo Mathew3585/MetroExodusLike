@@ -75,18 +75,19 @@ protected:
 	TObjectPtr<UMEWeaponComponent> Weapons;
 
 	/**
-	 * Extra meshes of the visible body (torso, vest, gear), following its pose.
-	 * GetMesh holds the legs. Never put arms or head here: the first-person arms replace them.
+	 * Extra meshes of the visible body (clothing...), following its pose.
+	 * Visible body meshes are cut without arms and head: the first-person arms replace them.
 	 */
 	UPROPERTY(EditDefaultsOnly, Category = "First Person")
 	TArray<TObjectPtr<USkeletalMesh>> VisibleBodyParts;
 
-	/**
-	 * Bones folded away on the visible body (sleeves would come in front of the camera).
-	 * Only the upper arms: hiding the clavicles collapses the torso.
-	 */
+	/** Extra meshes of the first-person arms (sleeves, gloves...), following their pose. Cut at the shoulder. */
 	UPROPERTY(EditDefaultsOnly, Category = "First Person")
-	TArray<FName> VisibleBodyHiddenBones = { TEXT("upperarm_l"), TEXT("upperarm_r") };
+	TArray<TObjectPtr<USkeletalMesh>> FirstPersonArmsParts;
+
+	/** Extra meshes of the world body (clothing, face...), following its pose. Complete, uncut. */
+	UPROPERTY(EditDefaultsOnly, Category = "First Person")
+	TArray<TObjectPtr<USkeletalMesh>> WorldBodyParts;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UMEInputConfig> InputConfig;
@@ -163,6 +164,9 @@ private:
 	void UpdateBodyRotation(float DeltaSeconds);
 	void UpdateLandingRecovery(float DeltaSeconds);
 	void ForEachBodyAnimInstance(TFunctionRef<void(UMEAnimInstance&)> Function) const;
+
+	/** Spawns a component per mesh, attached to the leader and copying its pose. */
+	TArray<USkeletalMeshComponent*> AddMeshParts(USkeletalMeshComponent* Leader, const TArray<TObjectPtr<USkeletalMesh>>& Meshes);
 
 	FVector2D MoveInput = FVector2D::ZeroVector;
 	bool bWantsToSprint = false;
