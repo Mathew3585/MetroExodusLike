@@ -41,9 +41,9 @@ Règle Metro : **toujours armé** (pas de touche pour ranger l'arme, sauf zones 
 Toutes les interactions se font **main gauche**, l'arme reste en main droite. Chaque interactable déclare son
 geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche s'y branchera en Phase 3.
 
-- [ ] 2.1 Interface `IMEInteractable` (geste + durée de maintien) + `UMEInteractionComponent` (trace depuis la caméra, focus, maintien)
-- [ ] 2.2 Prompt minimal à l'écran (« [E] Ouvrir » + barre de maintien), widget construit en C++
-- [ ] 2.3 Premiers interactables : porte (s'ouvre à l'opposé du joueur), objet ramassable, interrupteur / disjoncteur (maintien)
+- [x] 2.1 Interface `IMEInteractable` (geste + durée de maintien) + `UMEInteractionComponent` (trace depuis la caméra, focus, maintien)
+- [x] 2.2 Prompt minimal à l'écran (« [E] Ouvrir » + barre de maintien), widget construit en C++
+- [x] 2.3 Premiers interactables : porte (s'ouvre à l'opposé du joueur), objet ramassable, interrupteur / disjoncteur (maintien)
 
 **Fini quand :** on peut ouvrir une porte et ramasser un objet.
 
