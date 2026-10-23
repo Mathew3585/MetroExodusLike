@@ -60,7 +60,7 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [x] 3.4b Objets ramassables par DataAsset (`UMEItemData` : munitions par calibre, ressources), inventaire (`UMEInventoryComponent`, max par objet), réserve de l'arme = munitions de son calibre dans l'inventaire (avance sur 7.1 / 7.2)
 - [x] 3.4c Douilles éjectées : physique, vue FPS (partent de la fenêtre d'éjection telle qu'on la voit), 5 s au sol, pool de douilles recyclées, son d'impact prêt (à trouver)
 - [x] 3.4d Réticule dynamique par DataAsset (`UMECrosshairData`, images du pack CrosshairFreePack) : s'écarte avec la dispersion, disparaît en visée ; défaut sur le controller, surcharge possible par arme
-- [ ] 3.5 Cibles avec santé (`UMEHealthComponent`, réutilisable partout) + hit marker discret (images `T_HM_*`)
+- [x] 3.5 Cibles avec santé (`UMEHealthComponent`, réutilisable partout) + hit marker discret (images `T_HM_*`)
 - [ ] 3.6 Impacts : decals, particules, sons
 
 **Fini quand :** tirer sur des cibles est satisfaisant.
