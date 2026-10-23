@@ -8,6 +8,7 @@ class AMECharacter;
 class UAudioComponent;
 class AMEWeapon;
 class AMEShellCasing;
+class UPointLightComponent;
 class UMEWeaponData;
 struct FMEWeaponAnimation;
 
@@ -19,6 +20,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FMETargetHitSignature, bool /*bKilled*/);
  * and a copy in the world body's hands (shadow, AI).
  * Fires hitscan shots from the view (semi / full auto, dry fire) inside a spread cone, kicks the view
  * and the arms on each shot, aims down sights, reloads (tactical / empty), pulls the weapon aside near walls.
+ * Each shot also throws a casing, flashes the muzzle and leaves an impact on the surface hit.
  */
 UCLASS(ClassGroup = (Weapons), meta = (BlueprintSpawnableComponent))
 class METROEXODUSLIKE_API UMEWeaponComponent : public UActorComponent
@@ -118,6 +120,9 @@ private:
 	void FireShot();
 	/** Throws a casing out of the ejection port, where it is seen on screen. */
 	void EjectShell();
+	/** Muzzle flash on the first-person weapon + light flash where the muzzle is seen. */
+	void PlayMuzzleFlash();
+	void UpdateMuzzleLight(float DeltaTime);
 	void FinishReload();
 	void PrintAmmo() const;
 
@@ -160,6 +165,11 @@ private:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<AMEShellCasing>> Casings;
 	int32 NextCasing = 0;
+
+	/** Lights the surroundings for a moment on each shot. */
+	UPROPERTY(Transient)
+	TObjectPtr<UPointLightComponent> MuzzleLight;
+	float MuzzleLightAlpha = 0.f;
 
 	/** Until this time the weapon is drawing / reloading. */
 	double BusyUntil = 0.0;

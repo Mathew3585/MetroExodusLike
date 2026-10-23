@@ -11,6 +11,8 @@ class USoundBase;
 class UMEItemData;
 class UMECrosshairData;
 class AMEShellCasing;
+class UMEImpactData;
+class UNiagaraSystem;
 
 /** Animation authored for the first-person arms and the matching one for the weapon (same length, played together). */
 USTRUCT(BlueprintType)
@@ -156,6 +158,43 @@ struct FMEShellEjectSettings
 	/** Casings kept in the world at once: past this the oldest one is reused. */
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "1"))
 	int32 MaxCasings = 40;
+};
+
+/** Flash and light at the muzzle on each shot. */
+USTRUCT(BlueprintType)
+struct FMEMuzzleSettings
+{
+	GENERATED_BODY()
+
+	/** Weapon bone at the muzzle. */
+	UPROPERTY(EditAnywhere)
+	FName Bone = TEXT("S_Barrel_end");
+
+	/** Muzzle relative to Bone. */
+	UPROPERTY(EditAnywhere)
+	FVector Offset = FVector::ZeroVector;
+
+	/** Muzzle flash effect, drawn with the first-person weapon. Its X axis is turned along the barrel. */
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UNiagaraSystem> Flash;
+
+	/** Barrel direction in the space of Bone (AR-15: +Y). */
+	UPROPERTY(EditAnywhere)
+	FVector BarrelAxis = FVector(0.f, 1.f, 0.f);
+
+	/** Flash lighting the surroundings: what makes a shot read in a dark tunnel. 0 = no light. */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Candela"))
+	float LightIntensity = 40.f;
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "cm"))
+	float LightRadius = 800.f;
+
+	UPROPERTY(EditAnywhere)
+	FLinearColor LightColor = FLinearColor(1.f, 0.7f, 0.4f);
+
+	/** Time for the light to go out after a shot. */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.01", Units = "s"))
+	float LightDuration = 0.06f;
 };
 
 /** Separate static part attached to a bone of the weapon (magazine, sights, stock...). */
@@ -305,6 +344,13 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Effects")
 	FMEShellEjectSettings ShellEject;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	FMEMuzzleSettings Muzzle;
+
+	/** Bullet holes, dust, sparks and sounds per surface hit. */
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	TObjectPtr<UMEImpactData> Impacts;
 
 	// --- UI ---
 

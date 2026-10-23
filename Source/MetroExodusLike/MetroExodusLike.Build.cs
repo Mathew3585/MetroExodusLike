@@ -19,7 +19,8 @@ public class MetroExodusLike : ModuleRules
 			"AIModule",          // AI controllers, perception, behavior trees
 			"GameplayTasks",     // Required by AIModule tasks
 			"NavigationSystem",  // Navmesh queries
-			"UMG"                // Widgets (prompts, menus)
+			"UMG",               // Widgets (prompts, menus)
+			"Niagara"            // Effects (impacts, muzzle flash)
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

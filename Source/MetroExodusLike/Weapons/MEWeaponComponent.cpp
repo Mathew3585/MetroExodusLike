@@ -16,6 +16,10 @@
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/AudioComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Combat/MEImpactData.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 UMEWeaponComponent::UMEWeaponComponent()
 {
@@ -37,6 +41,7 @@ void UMEWeaponComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	UpdateAiming(DeltaTime);
 	UpdateFiring();
 	UpdateRecoil(DeltaTime);
+	UpdateMuzzleLight(DeltaTime);
 }
 
 void UMEWeaponComponent::UpdateAiming(float DeltaTime)
@@ -260,6 +265,7 @@ void UMEWeaponComponent::FireShot()
 		UGameplayStatics::SpawnSoundAttached(Data->FireSound, Weapon->GetMesh());
 	}
 	EjectShell();
+	PlayMuzzleFlash();
 
 	// Hitscan from the eye, inside the spread cone around the view (spread taken before this shot's bloom)
 	const UMEFirstPersonCameraComponent* Camera = Character->GetFirstPersonCamera();
@@ -280,6 +286,11 @@ void UMEWeaponComponent::FireShot()
 		const float HealthBefore = TargetHealth ? TargetHealth->GetHealth() : 0.f;
 
 		UGameplayStatics::ApplyPointDamage(Hit.GetActor(), Data->Damage, Direction, Hit, Character->GetController(), Character, nullptr);
+
+		if (Data->Impacts)
+		{
+			Data->Impacts->SpawnImpact(this, Hit);
+		}
 
 		if (TargetHealth && TargetHealth->GetHealth() < HealthBefore)
 		{
@@ -341,6 +352,74 @@ void UMEWeaponComponent::EjectShell()
 	const FRotator Rotation = FRotationMatrix::MakeFromZ(Port.TransformVectorNoScale(Eject.BarrelAxis)).Rotator();
 
 	Casing->Launch(Location, Rotation, Velocity, AngularVelocity, Camera->GetFirstPersonVisualScale());
+}
+
+void UMEWeaponComponent::PlayMuzzleFlash()
+{
+	const FMEMuzzleSettings& Muzzle = GetWeaponData()->Muzzle;
+	USkeletalMeshComponent* WeaponMesh = Weapon->GetMesh();
+
+	if (Muzzle.Flash)
+	{
+		const FRotator Rotation = FRotationMatrix::MakeFromX(Muzzle.BarrelAxis).Rotator();
+		if (UNiagaraComponent* Flash = UNiagaraFunctionLibrary::SpawnSystemAttached(Muzzle.Flash, WeaponMesh, Muzzle.Bone,
+			Muzzle.Offset, Rotation, EAttachLocation::KeepRelativeOffset, true))
+		{
+			// Drawn like the weapon (scaled toward the eye), or it would float away from the barrel
+			Flash->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::FirstPerson);
+			Flash->SetCastShadow(false);
+		}
+	}
+
+	if (Muzzle.LightIntensity <= 0.f)
+	{
+		return;
+	}
+	if (!MuzzleLight)
+	{
+		MuzzleLight = NewObject<UPointLightComponent>(Character);
+		MuzzleLight->SetCastShadows(false);
+		MuzzleLight->SetIntensityUnits(ELightUnits::Candelas);
+		MuzzleLight->SetVisibility(false);
+		MuzzleLight->RegisterComponent();
+	}
+	MuzzleLight->SetIntensity(Muzzle.LightIntensity);
+	MuzzleLight->SetAttenuationRadius(Muzzle.LightRadius);
+	MuzzleLight->SetLightColor(Muzzle.LightColor);
+	MuzzleLightAlpha = 1.f;
+	MuzzleLight->SetVisibility(true);
+	UpdateMuzzleLight(0.f);
+}
+
+void UMEWeaponComponent::UpdateMuzzleLight(float DeltaTime)
+{
+	if (!MuzzleLight || MuzzleLightAlpha <= 0.f)
+	{
+		return;
+	}
+
+	const FMEMuzzleSettings& Muzzle = GetWeaponData()->Muzzle;
+	MuzzleLightAlpha = FMath::Max(0.f, MuzzleLightAlpha - DeltaTime / Muzzle.LightDuration);
+	if (MuzzleLightAlpha <= 0.f)
+	{
+		MuzzleLight->SetVisibility(false);
+		return;
+	}
+
+	// At the real muzzle, out in front: the light must come from the barrel, not from the eye.
+	// The muzzle can be inside a wall (the weapon is drawn scaled toward the eye): pulled back to our side of it
+	const FVector Eye = Character->GetFirstPersonCamera()->GetComponentLocation();
+	const FVector MuzzleLocation = Weapon->GetMesh()->GetSocketTransform(Muzzle.Bone).TransformPosition(Muzzle.Offset);
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(MEMuzzleLight), false, Character);
+	Params.AddIgnoredActor(Weapon);
+	Params.AddIgnoredActor(WorldWeapon);
+	FHitResult Hit;
+	const bool bBlocked = GetWorld()->LineTraceSingleByChannel(Hit, Eye, MuzzleLocation, ECC_Visibility, Params);
+	const FVector LightLocation = bBlocked ? Hit.Location - (MuzzleLocation - Eye).GetSafeNormal() * 10.f : MuzzleLocation;
+
+	MuzzleLight->SetWorldLocation(LightLocation);
+	MuzzleLight->SetIntensity(Muzzle.LightIntensity * MuzzleLightAlpha);
 }
 
 void UMEWeaponComponent::Reload()
@@ -453,6 +532,12 @@ void UMEWeaponComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 	Casings.Reset();
+
+	if (MuzzleLight)
+	{
+		MuzzleLight->DestroyComponent();
+		MuzzleLight = nullptr;
+	}
 
 	Super::EndPlay(EndPlayReason);
 }
