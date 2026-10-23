@@ -47,6 +47,19 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<UAnimSequenceBase> SprintLoop;
 
+	// Close to a wall: the weapon goes to the close pose, then the against pose. Blended over everything else.
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Wall")
+	TObjectPtr<UAnimSequenceBase> CloseToWallPose;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Wall")
+	TObjectPtr<UAnimSequenceBase> AgainstWallPose;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Wall")
+	float CloseToWallAlpha = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Wall")
+	float AgainstWallAlpha = 0.f;
+
 	/** Slot the actions play on. Must exist in the AnimGraph. */
 	UPROPERTY(EditDefaultsOnly, Category = "Animations")
 	FName ActionSlot = TEXT("DefaultSlot");

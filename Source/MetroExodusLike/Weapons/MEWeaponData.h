@@ -67,6 +67,24 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "First Person")
 	FTransform ArmsGripOffset;
 
+	// --- Close to a wall: the weapon is pulled aside instead of going through ---
+
+	/** Arms pose with the weapon pulled back (wall getting close). */
+	UPROPERTY(EditDefaultsOnly, Category = "First Person|Wall")
+	TObjectPtr<UAnimSequenceBase> CloseToWallPose;
+
+	/** Arms pose with the weapon raised out of the way (against the wall). */
+	UPROPERTY(EditDefaultsOnly, Category = "First Person|Wall")
+	TObjectPtr<UAnimSequenceBase> AgainstWallPose;
+
+	/** Free space needed in front of the eye for the weapon: closer obstacles start pulling it aside. */
+	UPROPERTY(EditDefaultsOnly, Category = "First Person|Wall", meta = (ClampMin = "0", Units = "cm"))
+	float WallCheckLength = 75.f;
+
+	/** At this distance (and closer) the weapon is fully raised against the wall. */
+	UPROPERTY(EditDefaultsOnly, Category = "First Person|Wall", meta = (ClampMin = "0", Units = "cm"))
+	float AgainstWallDistance = 30.f;
+
 	// --- World body (shadow, what the AI sees) ---
 
 	/**

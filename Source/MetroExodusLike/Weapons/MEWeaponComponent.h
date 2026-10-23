@@ -22,8 +22,13 @@ class METROEXODUSLIKE_API UMEWeaponComponent : public UActorComponent
 public:
 	UMEWeaponComponent();
 
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 	AMEWeapon* GetWeapon() const { return Weapon; }
 	UMEWeaponData* GetWeaponData() const;
+
+	/** 0 = free, 1 = against a wall: how much the weapon is pulled aside. Smoothed. */
+	float GetWallBlockAmount() const { return WallBlockAmount; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -37,9 +42,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
 	TSubclassOf<AMEWeapon> WeaponClass;
 
+	/** Thickness of the wall check: catches edges the weapon would clip into. */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Wall", meta = (ClampMin = "0", Units = "cm"))
+	float WallCheckRadius = 6.f;
+
+	/** How fast the weapon goes aside / comes back. */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Wall", meta = (ClampMin = "0"))
+	float WallBlockBlendSpeed = 8.f;
+
 private:
 	void Equip(UMEWeaponData* WeaponData);
 	void PlayAction(const FMEWeaponAnimation& Action);
+	void UpdateWallBlock(float DeltaTime);
 
 	UPROPERTY(Transient)
 	TObjectPtr<AMECharacter> Character;
@@ -51,4 +65,6 @@ private:
 	/** Copy held by the world body: invisible, casts the shadow. */
 	UPROPERTY(Transient)
 	TObjectPtr<AMEWeapon> WorldWeapon;
+
+	float WallBlockAmount = 0.f;
 };
