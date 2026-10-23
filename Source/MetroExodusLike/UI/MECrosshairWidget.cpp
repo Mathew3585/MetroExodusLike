@@ -25,6 +25,7 @@ void UMECrosshairWidget::NativeOnInitialized()
 
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 	CrosshairImage->SetVisibility(ESlateVisibility::Collapsed);
+	HitMarkerImage->SetVisibility(ESlateVisibility::Collapsed);
 
 	if (Material)
 	{
@@ -43,6 +44,7 @@ void UMECrosshairWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 
 	// The weapon's own crosshair wins over the default one
 	ApplyStyle(WeaponData ? (WeaponData->Crosshair ? WeaponData->Crosshair.Get() : DefaultCrosshair.Get()) : nullptr);
+	UpdateHitMarker(InDeltaTime);
 	if (!Current)
 	{
 		return;
@@ -72,6 +74,42 @@ void UMECrosshairWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	}
 }
 
+void UMECrosshairWidget::ShowHitMarker(bool bKilled)
+{
+	if (!Current || !Current->HitMarkerTexture)
+	{
+		return;
+	}
+
+	// A kill stays a kill until the marker fades, even if a plain hit lands right after
+	bHitMarkerKill = bKilled || (bHitMarkerKill && HitMarkerAlpha > 0.f);
+	HitMarkerAlpha = 1.f;
+	HitMarkerImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UMECrosshairWidget::UpdateHitMarker(float DeltaTime)
+{
+	if (HitMarkerAlpha <= 0.f)
+	{
+		return;
+	}
+
+	HitMarkerAlpha = Current ? FMath::Max(0.f, HitMarkerAlpha - DeltaTime / Current->HitMarkerDuration) : 0.f;
+	if (HitMarkerAlpha <= 0.f)
+	{
+		HitMarkerImage->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	// Pops out and shrinks back while fading, a kill pops bigger
+	const float Pop = bHitMarkerKill ? Current->HitMarkerPop * 1.2f : Current->HitMarkerPop;
+	HitMarkerImage->SetDesiredSizeOverride(FVector2D(Current->HitMarkerSize * FMath::Lerp(1.f, Pop, HitMarkerAlpha * HitMarkerAlpha)));
+
+	FLinearColor Color = bHitMarkerKill ? Current->KillColor : Current->HitColor;
+	Color.A *= HitMarkerAlpha;
+	HitMarkerImage->SetColorAndOpacity(Color);
+}
+
 void UMECrosshairWidget::ApplyStyle(UMECrosshairData* Style)
 {
 	if (Style == Current)
@@ -79,6 +117,11 @@ void UMECrosshairWidget::ApplyStyle(UMECrosshairData* Style)
 		return;
 	}
 	Current = Style;
+
+	if (Current && Current->HitMarkerTexture)
+	{
+		HitMarkerImage->SetBrushFromTexture(Current->HitMarkerTexture);
+	}
 
 	if (!Current || !Current->Texture || !MaterialInstance)
 	{

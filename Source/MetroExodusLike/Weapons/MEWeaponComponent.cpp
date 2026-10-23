@@ -6,6 +6,7 @@
 #include "Player/MEFirstPersonAnimInstance.h"
 #include "Player/MEFirstPersonCameraComponent.h"
 #include "Inventory/MEInventoryComponent.h"
+#include "Combat/MEHealthComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "Engine/World.h"
@@ -274,7 +275,16 @@ void UMEWeaponComponent::FireShot()
 	FHitResult Hit;
 	if (GetWorld()->LineTraceSingleByChannel(Hit, Start, Start + Direction * Data->Range, ECC_Visibility, Params))
 	{
+		// Only something with health confirms a hit (hit marker): walls and props take the damage silently
+		const UMEHealthComponent* TargetHealth = Hit.GetActor() ? Hit.GetActor()->FindComponentByClass<UMEHealthComponent>() : nullptr;
+		const float HealthBefore = TargetHealth ? TargetHealth->GetHealth() : 0.f;
+
 		UGameplayStatics::ApplyPointDamage(Hit.GetActor(), Data->Damage, Direction, Hit, Character->GetController(), Character, nullptr);
+
+		if (TargetHealth && TargetHealth->GetHealth() < HealthBefore)
+		{
+			OnTargetHit.Broadcast(TargetHealth->IsDead());
+		}
 
 		if (bDebugShots)
 		{

@@ -5,6 +5,7 @@
 #include "MEPlayerController.generated.h"
 
 class UMEInteractionComponent;
+class UMEWeaponComponent;
 class UMEInteractionPromptWidget;
 class UMECrosshairWidget;
 class UMECrosshairData;
@@ -37,6 +38,7 @@ protected:
 private:
 	void HandleInteractionFocusChanged(bool bHasFocus, const FMEInteractionInfo& Info);
 	void HandleInteractionProgress(float Progress);
+	void HandleTargetHit(bool bKilled);
 
 	/** Display name of the key bound to Interact ("E"), so the prompt follows rebinding. */
 	FText GetInteractKeyText() const;
@@ -48,4 +50,5 @@ private:
 	TObjectPtr<UMECrosshairWidget> Crosshair;
 
 	TWeakObjectPtr<UMEInteractionComponent> BoundInteraction;
+	TWeakObjectPtr<UMEWeaponComponent> BoundWeapons;
 };

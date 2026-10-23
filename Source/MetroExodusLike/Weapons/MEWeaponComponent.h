@@ -11,6 +11,9 @@ class AMEShellCasing;
 class UMEWeaponData;
 struct FMEWeaponAnimation;
 
+/** A shot hurt something with health (hit marker). bKilled: that shot finished it. */
+DECLARE_MULTICAST_DELEGATE_OneParam(FMETargetHitSignature, bool /*bKilled*/);
+
 /**
  * The player's weapon handling: spawns the weapon in the first-person arms,
  * and a copy in the world body's hands (shadow, AI).
@@ -61,6 +64,8 @@ public:
 
 	/** Rounds of the current weapon's ammo type the player carries. */
 	int32 GetReserveAmmo() const;
+
+	FMETargetHitSignature OnTargetHit;
 
 protected:
 	virtual void BeginPlay() override;

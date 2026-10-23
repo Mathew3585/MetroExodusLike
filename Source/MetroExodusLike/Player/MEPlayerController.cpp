@@ -3,6 +3,7 @@
 #include "Player/MECharacter.h"
 #include "Input/MEInputConfig.h"
 #include "Interaction/MEInteractionComponent.h"
+#include "Weapons/MEWeaponComponent.h"
 #include "UI/MEInteractionPromptWidget.h"
 #include "UI/MECrosshairWidget.h"
 #include "EnhancedInputSubsystems.h"
@@ -48,6 +49,10 @@ void AMEPlayerController::OnPossess(APawn* InPawn)
 		Interaction->OnFocusChanged.AddUObject(this, &AMEPlayerController::HandleInteractionFocusChanged);
 		Interaction->OnProgress.AddUObject(this, &AMEPlayerController::HandleInteractionProgress);
 		BoundInteraction = Interaction;
+
+		UMEWeaponComponent* Weapons = MECharacter->GetWeapons();
+		Weapons->OnTargetHit.AddUObject(this, &AMEPlayerController::HandleTargetHit);
+		BoundWeapons = Weapons;
 	}
 }
 
@@ -59,6 +64,12 @@ void AMEPlayerController::OnUnPossess()
 		Interaction->OnProgress.RemoveAll(this);
 	}
 	BoundInteraction.Reset();
+
+	if (UMEWeaponComponent* Weapons = BoundWeapons.Get())
+	{
+		Weapons->OnTargetHit.RemoveAll(this);
+	}
+	BoundWeapons.Reset();
 
 	if (InteractionPrompt)
 	{
@@ -83,6 +94,14 @@ void AMEPlayerController::HandleInteractionFocusChanged(bool bHasFocus, const FM
 void AMEPlayerController::HandleInteractionProgress(float Progress)
 {
 	InteractionPrompt->SetProgress(Progress);
+}
+
+void AMEPlayerController::HandleTargetHit(bool bKilled)
+{
+	if (Crosshair)
+	{
+		Crosshair->ShowHitMarker(bKilled);
+	}
 }
 
 FText AMEPlayerController::GetInteractKeyText() const

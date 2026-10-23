@@ -45,4 +45,29 @@ public:
 	/** How fast the crosshair follows the spread (higher = snappier). */
 	UPROPERTY(EditDefaultsOnly, Category = "Spread", meta = (ClampMin = "0"))
 	float SmoothingSpeed = 14.f;
+
+	// --- Hit marker: flashes when a shot hurts something, also while aiming ---
+
+	/** None = no hit marker. */
+	UPROPERTY(EditDefaultsOnly, Category = "Hit Marker")
+	TObjectPtr<UTexture2D> HitMarkerTexture;
+
+	/** Size on screen, in Slate units. */
+	UPROPERTY(EditDefaultsOnly, Category = "Hit Marker", meta = (ClampMin = "1"))
+	float HitMarkerSize = 24.f;
+
+	/** Time to fade out. */
+	UPROPERTY(EditDefaultsOnly, Category = "Hit Marker", meta = (ClampMin = "0.01", Units = "s"))
+	float HitMarkerDuration = 0.25f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Hit Marker")
+	FLinearColor HitColor = FLinearColor(1.f, 1.f, 1.f, 0.9f);
+
+	/** The shot that kills. */
+	UPROPERTY(EditDefaultsOnly, Category = "Hit Marker")
+	FLinearColor KillColor = FLinearColor(0.85f, 0.1f, 0.05f, 0.95f);
+
+	/** Pops at this size and shrinks back to normal (a kill pops bigger). */
+	UPROPERTY(EditDefaultsOnly, Category = "Hit Marker", meta = (ClampMin = "1"))
+	float HitMarkerPop = 1.25f;
 };
