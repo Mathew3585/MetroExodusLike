@@ -1,5 +1,7 @@
 #include "Player/MEFirstPersonCameraComponent.h"
 #include "Player/MECharacter.h"
+#include "Weapons/MEWeaponComponent.h"
+#include "Weapons/MEWeaponData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 UMEFirstPersonCameraComponent::UMEFirstPersonCameraComponent()
@@ -30,6 +32,8 @@ void UMEFirstPersonCameraComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	HipFieldOfView = FieldOfView;
+
 	Character = Cast<AMECharacter>(GetOwner());
 	if (Character)
 	{
@@ -48,6 +52,7 @@ void UMEFirstPersonCameraComponent::TickComponent(float DeltaTime, ELevelTick Ti
 	}
 
 	const FVector PivotLocation = UpdatePlacement(DeltaTime);
+	UpdateAiming();
 
 	FVector OffsetLocation = FVector::ZeroVector;
 	FRotator OffsetRotation = FRotator::ZeroRotator;
@@ -119,9 +124,10 @@ void UMEFirstPersonCameraComponent::UpdateHeadBob(float DeltaTime, FVector& OutL
 	const float Sway = FMath::Sin(StepPhase);
 	const float Bob = FMath::Sin(StepPhase * 2.f);
 
-	OutLocation.Y += Sway * Horizontal * MoveWeight;
-	OutLocation.Z += Bob * Vertical * MoveWeight;
-	OutRotation.Roll += Sway * Roll * MoveWeight;
+	const float AimScale = FMath::Lerp(1.f, AimBobScale, Character->GetWeapons()->GetAimAlpha());
+	OutLocation.Y += Sway * Horizontal * MoveWeight * AimScale;
+	OutLocation.Z += Bob * Vertical * MoveWeight * AimScale;
+	OutRotation.Roll += Sway * Roll * MoveWeight * AimScale;
 }
 
 void UMEFirstPersonCameraComponent::UpdateBreathing(float DeltaTime, FVector& OutLocation, FRotator& OutRotation)
@@ -189,6 +195,18 @@ void UMEFirstPersonCameraComponent::UpdateStrafeTilt(float DeltaTime, FRotator& 
 
 	StrafeRoll = FMath::FInterpTo(StrafeRoll, Sideways * StrafeRollAngle, DeltaTime, StrafeRollSpeed);
 	OutRotation.Roll += StrafeRoll;
+}
+
+void UMEFirstPersonCameraComponent::UpdateAiming()
+{
+	const UMEWeaponComponent* Weapons = Character->GetWeapons();
+	const UMEWeaponData* Data = Weapons->GetWeaponData();
+	const float AimAlpha = Weapons->GetAimAlpha();
+
+	SetFieldOfView(FMath::Lerp(HipFieldOfView, Data ? Data->AimFieldOfView : HipFieldOfView, AimAlpha));
+
+	// Aiming: the breath is held so the sights stay still
+	SetHoldingBreath(AimAlpha > 0.5f);
 }
 
 void UMEFirstPersonCameraComponent::PlayHeavyLanding(float Duration)

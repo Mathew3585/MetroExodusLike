@@ -27,6 +27,9 @@ public:
 	/** Plays an arms action on the slot (draw, fire, reload...). */
 	void PlayAction(UAnimSequenceBase* Animation);
 
+	/** Cuts the current action short, blending back to the loops. */
+	void StopAction(float BlendOutTime);
+
 protected:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
@@ -46,6 +49,23 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<UAnimSequenceBase> SprintLoop;
+
+	// Aiming down sights: loops blended over the hip loops by AimAlpha
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Aim")
+	TObjectPtr<UAnimSequenceBase> AimLoop;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Aim")
+	TObjectPtr<UAnimSequenceBase> AimWalkLoop;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Aim")
+	float AimAlpha = 0.f;
+
+	/**
+	 * Recoil: translation added to the clavicles and the gun bone, in component space.
+	 * The whole rig moves together, the head (camera) stays.
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Recoil")
+	FVector ArmsKickOffset = FVector::ZeroVector;
 
 	// Close to a wall: the weapon goes to the close pose, then the against pose. Blended over everything else.
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Wall")

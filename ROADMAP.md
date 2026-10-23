@@ -56,7 +56,7 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [ ] 3.2c Zones sûres (volume qui range l'arme)
 - [ ] 3.2b Gestes main gauche branchés sur les interactions (ramasser, porte, interrupteur)
 - [x] 3.3 Tir hitscan depuis la vue (auto / semi, cadence exacte), munitions (chargeur + réserve), tir à vide, rechargement tactique / à vide, sons du pack par action
-- [ ] 3.4 Recul, dispersion, visée (ADS)
+- [x] 3.4 Visée (ADS : animations du pack, zoom, souffle retenu), recul procédural (vue + bras), dispersion (hanche / visée / mouvement / saut), inspection ; tirs et inspection interrompus au changement de posture
 - [ ] 3.5 Cibles avec santé (`UMEHealthComponent`, réutilisable partout)
 - [ ] 3.6 Impacts : decals, particules, sons
 

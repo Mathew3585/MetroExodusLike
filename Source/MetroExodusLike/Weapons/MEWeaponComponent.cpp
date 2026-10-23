@@ -4,12 +4,15 @@
 #include "Player/MECharacter.h"
 #include "Player/MEFirstPersonAnimInstance.h"
 #include "Player/MEFirstPersonCameraComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Controller.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "CollisionQueryParams.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
 
 UMEWeaponComponent::UMEWeaponComponent()
 {
@@ -28,7 +31,152 @@ void UMEWeaponComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	UpdateWallBlock(DeltaTime);
+	UpdateAiming(DeltaTime);
 	UpdateFiring();
+	UpdateRecoil(DeltaTime);
+}
+
+void UMEWeaponComponent::UpdateAiming(float DeltaTime)
+{
+	const UMEWeaponData* Data = GetWeaponData();
+	if (!Data)
+	{
+		return;
+	}
+
+	const bool bCanAim = bWantsToAim && !IsBusy() && !Character->IsSprinting() && WallBlockAmount <= MaxWallBlockToFire;
+
+	// Hip and aim actions are authored for their stance: switching stance cuts them, so the weapon moves right away
+	if (bCanAim != bAimTarget || Character->IsSprinting())
+	{
+		InterruptAction();
+	}
+	bAimTarget = bCanAim;
+
+	AimAlpha = FMath::FInterpTo(AimAlpha, bCanAim ? 1.f : 0.f, DeltaTime, Data->AimSpeed);
+}
+
+void UMEWeaponComponent::Inspect()
+{
+	const UMEWeaponData* Data = GetWeaponData();
+	if (!Data || IsBusy() || bWantsToAim || Character->IsSprinting() || WallBlockAmount > MaxWallBlockToFire)
+	{
+		return;
+	}
+
+	const bool bEmpty = Weapon->GetAmmoInMagazine() == 0 && Data->InspectEmpty.Arms;
+	PlayAction(bEmpty ? Data->InspectEmpty : Data->Inspect, true);
+}
+
+bool UMEWeaponComponent::IsPlayingInterruptibleAction() const
+{
+	return bActionInterruptible && GetWorld()->GetTimeSeconds() < ActionEndTime;
+}
+
+void UMEWeaponComponent::InterruptAction()
+{
+	if (!IsPlayingInterruptibleAction())
+	{
+		return;
+	}
+	bActionInterruptible = false;
+
+	if (UMEFirstPersonAnimInstance* ArmsAnim = Cast<UMEFirstPersonAnimInstance>(Character->GetFirstPersonArms()->GetAnimInstance()))
+	{
+		ArmsAnim->StopAction(InterruptBlendOutTime);
+	}
+
+	const UMEWeaponData* Data = GetWeaponData();
+	Weapon->PlayWeaponAnimation(Weapon->GetAmmoInMagazine() == 0 && Data->WeaponEmptyPose ? Data->WeaponEmptyPose : Data->WeaponIdlePose);
+
+	if (UAudioComponent* Sound = ActionSound.Get())
+	{
+		Sound->FadeOut(InterruptBlendOutTime, 0.f);
+	}
+}
+
+float UMEWeaponComponent::GetSpreadAngle() const
+{
+	const UMEWeaponData* Data = GetWeaponData();
+	if (!Data)
+	{
+		return 0.f;
+	}
+
+	const FMESpreadSettings& Spread = Data->Spread;
+	const UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+	const float MoveAlpha = FMath::Clamp(Movement->Velocity.Size2D() / FMath::Max(Movement->MaxWalkSpeed, 1.f), 0.f, 1.f);
+
+	// Aiming steadies the base and the movement penalty, not the bloom (it already gets the recoil aim scale)
+	const float Steady = FMath::Lerp(1.f, 0.3f, AimAlpha);
+	float Angle = FMath::Lerp(Spread.Hip, Spread.Aim, AimAlpha)
+		+ Spread.Moving * MoveAlpha * Steady
+		+ (Movement->IsFalling() ? Spread.InAir : 0.f)
+		+ SpreadBloom;
+	return FMath::Min(Angle, FMath::Lerp(Spread.HipMax, Spread.AimMax, AimAlpha));
+}
+
+void UMEWeaponComponent::AddRecoil()
+{
+	const UMEWeaponData* Data = GetWeaponData();
+	const FMERecoilSettings& Recoil = Data->Recoil;
+	const float Scale = FMath::Lerp(1.f, Recoil.AimScale, AimAlpha);
+
+	PendingRecoil.Pitch += Recoil.PitchPerShot * Scale * FMath::FRandRange(0.8f, 1.2f);
+	PendingRecoil.Yaw += Recoil.YawPerShot * Scale * FMath::FRandRange(-1.f, 1.f);
+
+	// View space: X forward, Z up
+	ArmsKickVelocity += FVector(-Recoil.ArmsKickBack, 0.f, Recoil.ArmsKickUp) * Scale * FMath::FRandRange(0.9f, 1.1f);
+
+	SpreadBloom += Data->Spread.PerShot * Scale;
+}
+
+void UMEWeaponComponent::UpdateRecoil(float DeltaTime)
+{
+	const UMEWeaponData* Data = GetWeaponData();
+	AController* Controller = Character ? Character->GetController() : nullptr;
+	if (!Data || !Controller)
+	{
+		return;
+	}
+	const FMERecoilSettings& Recoil = Data->Recoil;
+
+	// View kick: reaches the view over a few frames, part of it is given back after the burst
+	FRotator ViewDelta = FRotator::ZeroRotator;
+	if (!PendingRecoil.IsNearlyZero())
+	{
+		const FRotator Step = PendingRecoil * FMath::Min(1.f, DeltaTime * Recoil.KickSpeed);
+		PendingRecoil -= Step;
+		RecoveryBudget += Step * Recoil.Recovery;
+		ViewDelta += Step;
+	}
+
+	const bool bFiringBurst = GetWorld()->GetTimeSeconds() - LastShotTime < 60.0 / Data->RoundsPerMinute * 1.5;
+	if (!bFiringBurst && !RecoveryBudget.IsNearlyZero())
+	{
+		const FRotator Step = RecoveryBudget * FMath::Min(1.f, DeltaTime * Recoil.RecoverySpeed);
+		RecoveryBudget -= Step;
+		ViewDelta -= Step;
+	}
+
+	if (!ViewDelta.IsNearlyZero())
+	{
+		Controller->SetControlRotation(Controller->GetControlRotation() + ViewDelta);
+	}
+
+	// Arms kick: damped spring, sub-stepped to stay stable on long frames
+	constexpr float MaxStep = 1.f / 120.f;
+	float Remaining = DeltaTime;
+	while (Remaining > 0.f)
+	{
+		const float Step = FMath::Min(Remaining, MaxStep);
+		const FVector Acceleration = -Recoil.ArmsKickStiffness * ArmsKick - Recoil.ArmsKickDamping * ArmsKickVelocity;
+		ArmsKickVelocity += Acceleration * Step;
+		ArmsKick += ArmsKickVelocity * Step;
+		Remaining -= Step;
+	}
+
+	SpreadBloom = FMath::Max(0.f, SpreadBloom - Data->Spread.RecoverySpeed * DeltaTime);
 }
 
 bool UMEWeaponComponent::IsBusy() const
@@ -68,7 +216,7 @@ void UMEWeaponComponent::UpdateFiring()
 	{
 		if (!bFiredThisPress)
 		{
-			PlayAction(Data->DryFire);
+			PlayAction(Data->DryFire, true);
 		}
 		bFiredThisPress = true;
 		return;
@@ -86,16 +234,18 @@ void UMEWeaponComponent::FireShot()
 
 	Weapon->ConsumeRound();
 	const bool bLastRound = Weapon->GetAmmoInMagazine() == 0 && Data->FireLast.Arms;
-	PlayAction(bLastRound ? Data->FireLast : Data->Fire);
+	const bool bAiming = AimAlpha > 0.5f && Data->AimFire.Arms;
+	PlayAction(bAiming ? Data->AimFire : bLastRound ? Data->FireLast : Data->Fire, true);
 	if (Data->FireSound)
 	{
 		UGameplayStatics::SpawnSoundAttached(Data->FireSound, Weapon->GetMesh());
 	}
 
-	// Hitscan from the eye, along the view
+	// Hitscan from the eye, inside the spread cone around the view (spread taken before this shot's bloom)
 	const UMEFirstPersonCameraComponent* Camera = Character->GetFirstPersonCamera();
 	const FVector Start = Camera->GetComponentLocation();
-	const FVector Direction = Camera->GetForwardVector();
+	const FVector Direction = FMath::VRandCone(Camera->GetForwardVector(), FMath::DegreesToRadians(GetSpreadAngle()));
+	AddRecoil();
 
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(MEWeaponShot), true, Character);
 	Params.AddIgnoredActor(Weapon);
@@ -238,8 +388,18 @@ void UMEWeaponComponent::Equip(UMEWeaponData* WeaponData)
 	PrintAmmo();
 }
 
-float UMEWeaponComponent::PlayAction(const FMEWeaponAnimation& Action)
+float UMEWeaponComponent::PlayAction(const FMEWeaponAnimation& Action, bool bInterruptible)
 {
+	// A new action replaces the previous one: an interrupted inspect must not keep talking
+	if (IsPlayingInterruptibleAction())
+	{
+		if (UAudioComponent* Sound = ActionSound.Get())
+		{
+			Sound->FadeOut(InterruptBlendOutTime, 0.f);
+		}
+	}
+	ActionSound.Reset();
+
 	if (UMEFirstPersonAnimInstance* ArmsAnim = Cast<UMEFirstPersonAnimInstance>(Character->GetFirstPersonArms()->GetAnimInstance()))
 	{
 		ArmsAnim->PlayAction(Action.Arms);
@@ -248,8 +408,11 @@ float UMEWeaponComponent::PlayAction(const FMEWeaponAnimation& Action)
 
 	if (Action.Sound)
 	{
-		UGameplayStatics::SpawnSoundAttached(Action.Sound, Weapon->GetMesh());
+		ActionSound = UGameplayStatics::SpawnSoundAttached(Action.Sound, Weapon->GetMesh());
 	}
 
-	return Action.Arms ? Action.Arms->GetPlayLength() : 0.f;
+	const float Length = Action.Arms ? Action.Arms->GetPlayLength() : 0.f;
+	bActionInterruptible = bInterruptible;
+	ActionEndTime = GetWorld()->GetTimeSeconds() + Length;
+	return Length;
 }

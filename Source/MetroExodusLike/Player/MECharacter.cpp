@@ -5,6 +5,7 @@
 #include "Player/MEAnimInstance.h"
 #include "Interaction/MEInteractionComponent.h"
 #include "Weapons/MEWeaponComponent.h"
+#include "Weapons/MEWeaponData.h"
 #include "AnimationRuntime.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -273,6 +274,7 @@ void AMECharacter::UpdateBodyRotation(float DeltaSeconds)
 bool AMECharacter::IsSprinting() const
 {
 	return bWantsToSprint
+		&& !Weapons->WantsToAim()
 		&& !bIsCrouched
 		&& MoveInput.Y >= SprintMinForwardInput
 		&& GetCharacterMovement()->IsMovingOnGround();
@@ -325,6 +327,9 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(InputConfig->FireAction, ETriggerEvent::Started, this, &AMECharacter::FirePressed);
 	Input->BindAction(InputConfig->FireAction, ETriggerEvent::Completed, this, &AMECharacter::FireReleased);
 	Input->BindAction(InputConfig->ReloadAction, ETriggerEvent::Started, this, &AMECharacter::ReloadPressed);
+	Input->BindAction(InputConfig->AimAction, ETriggerEvent::Started, this, &AMECharacter::AimPressed);
+	Input->BindAction(InputConfig->AimAction, ETriggerEvent::Completed, this, &AMECharacter::AimReleased);
+	Input->BindAction(InputConfig->InspectAction, ETriggerEvent::Started, this, &AMECharacter::InspectPressed);
 }
 
 bool AMECharacter::CanInteract() const
@@ -348,6 +353,25 @@ void AMECharacter::FirePressed()
 void AMECharacter::FireReleased()
 {
 	Weapons->StopFire();
+}
+
+void AMECharacter::AimPressed()
+{
+	// Aiming ends the sprint
+	bWantsToSprint = false;
+	Weapons->SetWantsToAim(true);
+	UpdateMaxWalkSpeed();
+}
+
+void AMECharacter::AimReleased()
+{
+	Weapons->SetWantsToAim(false);
+	UpdateMaxWalkSpeed();
+}
+
+void AMECharacter::InspectPressed()
+{
+	Weapons->Inspect();
 }
 
 void AMECharacter::ReloadPressed()
@@ -450,6 +474,8 @@ void AMECharacter::CrouchReleased()
 void AMECharacter::UpdateMaxWalkSpeed()
 {
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
-	Movement->MaxWalkSpeed = (IsSprinting() ? SprintSpeed : WalkSpeed) * LandingSpeedScale;
-	Movement->MaxWalkSpeedCrouched = CrouchSpeed * LandingSpeedScale;
+	const UMEWeaponData* WeaponData = Weapons->GetWeaponData();
+	const float AimScale = WeaponData && Weapons->WantsToAim() ? WeaponData->AimMoveSpeedScale : 1.f;
+	Movement->MaxWalkSpeed = (IsSprinting() ? SprintSpeed : WalkSpeed * AimScale) * LandingSpeedScale;
+	Movement->MaxWalkSpeedCrouched = CrouchSpeed * AimScale * LandingSpeedScale;
 }

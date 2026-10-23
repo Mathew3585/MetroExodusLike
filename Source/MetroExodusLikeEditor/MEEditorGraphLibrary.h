@@ -24,6 +24,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ME Editor|Graphs")
 	static bool LinkPins(UBlueprint* Blueprint, FName GraphName, FName FromNode, FName FromPin, FName ToNode, FName ToPin);
 
+	/** Names of the pins of a node ("Name (in)" / "Name (out)"). */
+	UFUNCTION(BlueprintCallable, Category = "ME Editor|Graphs")
+	static TArray<FString> GetPinNames(UBlueprint* Blueprint, FName GraphName, FName NodeName);
+
 	/** Names of the nodes of the named graph. */
 	UFUNCTION(BlueprintCallable, Category = "ME Editor|Graphs")
 	static TArray<FName> GetNodeNames(UBlueprint* Blueprint, FName GraphName);

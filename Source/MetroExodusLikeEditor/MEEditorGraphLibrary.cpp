@@ -58,6 +58,25 @@ bool UMEEditorGraphLibrary::LinkPins(UBlueprint* Blueprint, FName GraphName, FNa
 	return bLinked;
 }
 
+TArray<FString> UMEEditorGraphLibrary::GetPinNames(UBlueprint* Blueprint, FName GraphName, FName NodeName)
+{
+	TArray<FString> Names;
+	if (UEdGraph* Graph = FindGraph(Blueprint, GraphName))
+	{
+		for (const UEdGraphNode* Node : Graph->Nodes)
+		{
+			if (Node && Node->GetFName() == NodeName)
+			{
+				for (const UEdGraphPin* Pin : Node->Pins)
+				{
+					Names.Add(FString::Printf(TEXT("%s (%s)"), *Pin->PinName.ToString(), Pin->Direction == EGPD_Input ? TEXT("in") : TEXT("out")));
+				}
+			}
+		}
+	}
+	return Names;
+}
+
 TArray<FName> UMEEditorGraphLibrary::GetNodeNames(UBlueprint* Blueprint, FName GraphName)
 {
 	TArray<FName> Names;

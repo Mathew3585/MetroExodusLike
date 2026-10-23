@@ -203,6 +203,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Camera|Impacts", meta = (ClampMin = "0.01", Units = "s"))
 	float HeavyLandingDropTime = 0.15f;
 
+	// --- Aiming ---
+
+	/** Head bob strength while fully aiming (the weapon must stay on target). */
+	UPROPERTY(EditAnywhere, Category = "Camera|Aiming", meta = (ClampMin = "0", ClampMax = "1"))
+	float AimBobScale = 0.3f;
+
 	// --- Strafe tilt ---
 
 	/** Roll when strafing at full bob speed. Positive leans into the movement, 0 disables. */
@@ -220,6 +226,7 @@ private:
 	void UpdateImpacts(float DeltaTime, FVector& OutLocation, FRotator& OutRotation);
 	void UpdateStrafeTilt(float DeltaTime, FRotator& OutRotation);
 	void UpdateHeavyLanding(float DeltaTime, FRotator& OutRotation);
+	void UpdateAiming();
 
 	UPROPERTY(Transient)
 	TObjectPtr<AMECharacter> Character;
@@ -231,6 +238,9 @@ private:
 	FVector SmoothedLocalOffset = FVector::ZeroVector;
 	bool bHasPlacement = false;
 	float AirFollowScale = 1.f;
+
+	/** Field of view when not aiming (the one set on the component). */
+	float HipFieldOfView = 90.f;
 
 	// Head bob
 	float StepPhase = 0.f;
