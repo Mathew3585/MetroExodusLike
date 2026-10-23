@@ -8,6 +8,7 @@ class UAnimSequenceBase;
 class USkeletalMesh;
 class UStaticMesh;
 class USoundBase;
+class UMEItemData;
 
 /** Animation authored for the first-person arms and the matching one for the weapon (same length, played together). */
 USTRUCT(BlueprintType)
@@ -288,8 +289,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "1"))
 	int32 MagazineSize = 30;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "0"))
-	int32 StartingReserveAmmo = 60;
+	/** Rounds this weapon takes: the reserve is the player's inventory count of this item. None = unlimited reserve. */
+	UPROPERTY(EditDefaultsOnly, Category = "Stats")
+	TObjectPtr<UMEItemData> AmmoType;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "0", Units = "cm"))
 	float Range = 10000.f;

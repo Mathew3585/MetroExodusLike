@@ -50,24 +50,16 @@ void AMEWeapon::Initialize(UMEWeaponData* InData, bool bFirstPerson)
 	}
 
 	AmmoInMagazine = Data->MagazineSize;
-	ReserveAmmo = Data->StartingReserveAmmo;
 }
 
-bool AMEWeapon::CanReload() const
+int32 AMEWeapon::GetRoomInMagazine() const
 {
-	return Data && AmmoInMagazine < Data->MagazineSize && ReserveAmmo > 0;
+	return Data ? FMath::Max(0, Data->MagazineSize - AmmoInMagazine) : 0;
 }
 
-void AMEWeapon::RefillMagazine()
+void AMEWeapon::LoadRounds(int32 Rounds)
 {
-	if (!Data)
-	{
-		return;
-	}
-
-	const int32 Loaded = FMath::Min(Data->MagazineSize - AmmoInMagazine, ReserveAmmo);
-	AmmoInMagazine += Loaded;
-	ReserveAmmo -= Loaded;
+	AmmoInMagazine += FMath::Clamp(Rounds, 0, GetRoomInMagazine());
 }
 
 void AMEWeapon::PlayWeaponAnimation(UAnimSequenceBase* Animation)

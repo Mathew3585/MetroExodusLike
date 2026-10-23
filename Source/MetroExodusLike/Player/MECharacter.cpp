@@ -6,6 +6,7 @@
 #include "Interaction/MEInteractionComponent.h"
 #include "Weapons/MEWeaponComponent.h"
 #include "Weapons/MEWeaponData.h"
+#include "Inventory/MEInventoryComponent.h"
 #include "AnimationRuntime.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -67,6 +68,7 @@ AMECharacter::AMECharacter()
 
 	Interaction = CreateDefaultSubobject<UMEInteractionComponent>(TEXT("Interaction"));
 	Weapons = CreateDefaultSubobject<UMEWeaponComponent>(TEXT("Weapons"));
+	Inventory = CreateDefaultSubobject<UMEInventoryComponent>(TEXT("Inventory"));
 
 	// Heavy, grounded movement: slow acceleration, little air control
 	UCharacterMovementComponent* Movement = GetCharacterMovement();

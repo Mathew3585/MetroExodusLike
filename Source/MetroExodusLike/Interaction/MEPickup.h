@@ -5,9 +5,11 @@
 #include "Interaction/MEInteractable.h"
 #include "MEPickup.generated.h"
 
+class UMEItemData;
+
 /**
- * Item lying in the world that the player picks up.
- * Goes to the inventory once it exists (Phase 7); for now it is logged and removed.
+ * A stack of items lying in the world (ammo, resources...). Picking it up adds it to the inventory;
+ * what does not fit (MaxCarry) stays on the ground.
  */
 UCLASS()
 class METROEXODUSLIKE_API AMEPickup : public AActor, public IMEInteractable
@@ -17,6 +19,8 @@ class METROEXODUSLIKE_API AMEPickup : public AActor, public IMEInteractable
 public:
 	AMEPickup();
 
+	virtual void OnConstruction(const FTransform& Transform) override;
+
 	// IMEInteractable
 	virtual FMEInteractionInfo GetInteractionInfo(const AMECharacter* Interactor) const override;
 	virtual void Interact(AMECharacter* Interactor) override;
@@ -25,8 +29,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
+	/** What lies here. Its world mesh is shown unless the Blueprint sets another one. */
 	UPROPERTY(EditAnywhere, Category = "Pickup")
-	FText ItemName;
+	TObjectPtr<UMEItemData> Item;
 
 	UPROPERTY(EditAnywhere, Category = "Pickup", meta = (ClampMin = "1"))
 	int32 Quantity = 1;

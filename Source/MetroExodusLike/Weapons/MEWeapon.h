@@ -31,16 +31,15 @@ public:
 	USkeletalMeshComponent* GetMesh() const { return Mesh; }
 
 	int32 GetAmmoInMagazine() const { return AmmoInMagazine; }
-	int32 GetReserveAmmo() const { return ReserveAmmo; }
 
 	/** Removes one round from the magazine. */
 	void ConsumeRound() { AmmoInMagazine = FMath::Max(0, AmmoInMagazine - 1); }
 
-	/** Magazine not full and rounds left in reserve. */
-	bool CanReload() const;
+	/** Rounds missing to fill the magazine. */
+	int32 GetRoomInMagazine() const;
 
-	/** Fills the magazine from the reserve. */
-	void RefillMagazine();
+	/** Puts rounds in the magazine (taken from the reserve by the caller). */
+	void LoadRounds(int32 Rounds);
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
@@ -51,5 +50,4 @@ private:
 	TObjectPtr<UMEWeaponData> Data;
 
 	int32 AmmoInMagazine = 0;
-	int32 ReserveAmmo = 0;
 };

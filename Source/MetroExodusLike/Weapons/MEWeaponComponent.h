@@ -58,6 +58,9 @@ public:
 	/** Current spread cone half-angle. */
 	float GetSpreadAngle() const;
 
+	/** Rounds of the current weapon's ammo type the player carries. */
+	int32 GetReserveAmmo() const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

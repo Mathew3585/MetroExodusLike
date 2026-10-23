@@ -8,6 +8,7 @@ class UMEFirstPersonCameraComponent;
 class UMEInputConfig;
 class UMEInteractionComponent;
 class UMEWeaponComponent;
+class UMEInventoryComponent;
 class UMEAnimInstance;
 class UAnimSequenceBase;
 struct FInputActionValue;
@@ -31,6 +32,7 @@ public:
 	UMEFirstPersonCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }
 	UMEInteractionComponent* GetInteraction() const { return Interaction; }
 	UMEWeaponComponent* GetWeapons() const { return Weapons; }
+	UMEInventoryComponent* GetInventory() const { return Inventory; }
 	USkeletalMeshComponent* GetFirstPersonArms() const { return FirstPersonArms; }
 	USkeletalMeshComponent* GetWorldBody() const { return ShadowMesh; }
 	const UMEInputConfig* GetInputConfig() const { return InputConfig; }
@@ -75,6 +77,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEWeaponComponent> Weapons;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEInventoryComponent> Inventory;
 
 	/**
 	 * Extra meshes of the visible body (clothing...), following its pose.

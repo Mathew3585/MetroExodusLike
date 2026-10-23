@@ -4,6 +4,7 @@
 #include "Player/MECharacter.h"
 #include "Player/MEFirstPersonAnimInstance.h"
 #include "Player/MEFirstPersonCameraComponent.h"
+#include "Inventory/MEInventoryComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "Engine/World.h"
@@ -66,6 +67,16 @@ void UMEWeaponComponent::Inspect()
 
 	const bool bEmpty = Weapon->GetAmmoInMagazine() == 0 && Data->InspectEmpty.Arms;
 	PlayAction(bEmpty ? Data->InspectEmpty : Data->Inspect, true);
+}
+
+int32 UMEWeaponComponent::GetReserveAmmo() const
+{
+	const UMEWeaponData* Data = GetWeaponData();
+	if (!Data)
+	{
+		return 0;
+	}
+	return Data->AmmoType ? Character->GetInventory()->GetCount(Data->AmmoType) : MAX_int32;
 }
 
 bool UMEWeaponComponent::IsPlayingInterruptibleAction() const
@@ -216,7 +227,13 @@ void UMEWeaponComponent::UpdateFiring()
 	{
 		if (!bFiredThisPress)
 		{
-			PlayAction(Data->DryFire, true);
+			// The dry fire clip is a hip pose: aiming, only the trigger click plays so the sights stay up
+			FMEWeaponAnimation DryFire = Data->DryFire;
+			if (AimAlpha > 0.5f)
+			{
+				DryFire.Arms = nullptr;
+			}
+			PlayAction(DryFire, true);
 		}
 		bFiredThisPress = true;
 		return;
@@ -270,7 +287,7 @@ void UMEWeaponComponent::FireShot()
 void UMEWeaponComponent::Reload()
 {
 	const UMEWeaponData* Data = GetWeaponData();
-	if (!Data || IsBusy() || !Weapon->CanReload())
+	if (!Data || IsBusy() || Weapon->GetRoomInMagazine() == 0 || GetReserveAmmo() == 0)
 	{
 		return;
 	}
@@ -286,11 +303,18 @@ void UMEWeaponComponent::Reload()
 
 void UMEWeaponComponent::FinishReload()
 {
-	if (Weapon)
+	const UMEWeaponData* Data = GetWeaponData();
+	if (!Data)
 	{
-		Weapon->RefillMagazine();
-		PrintAmmo();
+		return;
 	}
+
+	// The rounds come out of the inventory now (some may have been used or picked up during the reload)
+	const int32 Rounds = Data->AmmoType
+		? Character->GetInventory()->Remove(Data->AmmoType, Weapon->GetRoomInMagazine())
+		: Weapon->GetRoomInMagazine();
+	Weapon->LoadRounds(Rounds);
+	PrintAmmo();
 }
 
 void UMEWeaponComponent::PrintAmmo() const
@@ -299,7 +323,7 @@ void UMEWeaponComponent::PrintAmmo() const
 	{
 		// Same key every time: the line is replaced instead of stacking
 		GEngine->AddOnScreenDebugMessage(static_cast<uint64>(GetUniqueID()), 5.f, FColor::White,
-			FString::Printf(TEXT("%s  %d / %d"), *Weapon->GetData()->DisplayName.ToString(), Weapon->GetAmmoInMagazine(), Weapon->GetReserveAmmo()));
+			FString::Printf(TEXT("%s  %d / %d"), *Weapon->GetData()->DisplayName.ToString(), Weapon->GetAmmoInMagazine(), GetReserveAmmo()));
 	}
 }
 
@@ -334,7 +358,15 @@ void UMEWeaponComponent::BeginPlay()
 	Super::BeginPlay();
 
 	Character = Cast<AMECharacter>(GetOwner());
-	if (Character && StartingWeapon)
+	if (!Character)
+	{
+		return;
+	}
+
+	// Picked-up ammo changes the reserve
+	Character->GetInventory()->OnChanged.AddWeakLambda(this, [this](const UMEItemData*, int32) { PrintAmmo(); });
+
+	if (StartingWeapon)
 	{
 		Equip(StartingWeapon);
 	}
