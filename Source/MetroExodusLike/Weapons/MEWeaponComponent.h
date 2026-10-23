@@ -12,7 +12,8 @@ struct FMEWeaponAnimation;
 /**
  * The player's weapon handling: spawns the weapon in the first-person arms,
  * and a copy in the world body's hands (shadow, AI).
- * Firing, reloading and aiming come in the next steps (3.3, 3.4).
+ * Fires hitscan shots from the view (semi / full auto, dry fire), reloads (tactical / empty),
+ * pulls the weapon aside near walls. Aiming, recoil and spread come in 3.4.
  */
 UCLASS(ClassGroup = (Weapons), meta = (BlueprintSpawnableComponent))
 class METROEXODUSLIKE_API UMEWeaponComponent : public UActorComponent
@@ -29,6 +30,16 @@ public:
 
 	/** 0 = free, 1 = against a wall: how much the weapon is pulled aside. Smoothed. */
 	float GetWallBlockAmount() const { return WallBlockAmount; }
+
+	/** Trigger pressed / released. Full auto keeps firing while held. */
+	void StartFire();
+	void StopFire();
+
+	/** Tactical reload if a round is chambered, empty reload otherwise. */
+	void Reload();
+
+	/** Drawing or reloading: no firing, no other action. */
+	bool IsBusy() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -50,10 +61,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Wall", meta = (ClampMin = "0"))
 	float WallBlockBlendSpeed = 8.f;
 
+	/** Above this wall block the weapon is too far aside to fire. */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Wall", meta = (ClampMin = "0", ClampMax = "1"))
+	float MaxWallBlockToFire = 0.3f;
+
+	/** Draws the impacts and prints the ammo on screen (until there is a HUD / watch). */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Debug")
+	bool bDebugShots = true;
+
 private:
 	void Equip(UMEWeaponData* WeaponData);
-	void PlayAction(const FMEWeaponAnimation& Action);
+	/** Plays the arms + weapon animations and the sound. Returns the arms animation length. */
+	float PlayAction(const FMEWeaponAnimation& Action);
 	void UpdateWallBlock(float DeltaTime);
+	void UpdateFiring();
+	void FireShot();
+	void FinishReload();
+	void PrintAmmo() const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<AMECharacter> Character;
@@ -67,4 +91,13 @@ private:
 	TObjectPtr<AMEWeapon> WorldWeapon;
 
 	float WallBlockAmount = 0.f;
+
+	// Firing
+	bool bWantsToFire = false;
+	bool bFiredThisPress = false;
+	double LastShotTime = -1.0;
+
+	/** Until this time the weapon is drawing / reloading. */
+	double BusyUntil = 0.0;
+	FTimerHandle ReloadTimer;
 };

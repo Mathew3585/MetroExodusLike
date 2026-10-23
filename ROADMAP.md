@@ -55,7 +55,7 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [ ] 3.2a Bras de notre perso : mesh reskinné sur le squelette du pack (pas de retarget dynamique), à brancher dans `FirstPersonArms`
 - [ ] 3.2c Zones sûres (volume qui range l'arme)
 - [ ] 3.2b Gestes main gauche branchés sur les interactions (ramasser, porte, interrupteur)
-- [ ] 3.3 Tir hitscan, munitions, rechargement
+- [x] 3.3 Tir hitscan depuis la vue (auto / semi, cadence exacte), munitions (chargeur + réserve), tir à vide, rechargement tactique / à vide, sons du pack par action
 - [ ] 3.4 Recul, dispersion, visée (ADS)
 - [ ] 3.5 Cibles avec santé (`UMEHealthComponent`, réutilisable partout)
 - [ ] 3.6 Impacts : decals, particules, sons

@@ -173,6 +173,9 @@ private:
 	void CrouchReleased();
 	void InteractPressed();
 	void InteractReleased();
+	void FirePressed();
+	void FireReleased();
+	void ReloadPressed();
 	void UpdateMaxWalkSpeed();
 	void UpdateBodyRotation(float DeltaSeconds);
 	void UpdateLandingRecovery(float DeltaSeconds);

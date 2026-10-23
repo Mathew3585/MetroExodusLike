@@ -21,6 +21,10 @@ struct FMEWeaponAnimation
 	/** Optional: bolt, magazine, trigger... */
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UAnimSequenceBase> Weapon;
+
+	/** Optional: sound of the whole action, synced with the animations (reload, draw...). */
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<USoundBase> Sound;
 };
 
 /** Separate static part attached to a bone of the weapon (magazine, sights, stock...). */
@@ -124,6 +128,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Actions")
 	FMEWeaponAnimation Fire;
 
+	/** Last round of the magazine: the bolt locks back. */
+	UPROPERTY(EditDefaultsOnly, Category = "Animations|Actions")
+	FMEWeaponAnimation FireLast;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Actions")
 	FMEWeaponAnimation AimFire;
 
@@ -143,6 +151,7 @@ public:
 
 	// --- Sounds ---
 
+	/** Played on every shot, at the weapon. */
 	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
 	TObjectPtr<USoundBase> FireSound;
 

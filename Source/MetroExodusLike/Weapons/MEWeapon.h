@@ -33,6 +33,15 @@ public:
 	int32 GetAmmoInMagazine() const { return AmmoInMagazine; }
 	int32 GetReserveAmmo() const { return ReserveAmmo; }
 
+	/** Removes one round from the magazine. */
+	void ConsumeRound() { AmmoInMagazine = FMath::Max(0, AmmoInMagazine - 1); }
+
+	/** Magazine not full and rounds left in reserve. */
+	bool CanReload() const;
+
+	/** Fills the magazine from the reserve. */
+	void RefillMagazine();
+
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> Mesh;

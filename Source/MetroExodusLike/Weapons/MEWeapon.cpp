@@ -53,6 +53,23 @@ void AMEWeapon::Initialize(UMEWeaponData* InData, bool bFirstPerson)
 	ReserveAmmo = Data->StartingReserveAmmo;
 }
 
+bool AMEWeapon::CanReload() const
+{
+	return Data && AmmoInMagazine < Data->MagazineSize && ReserveAmmo > 0;
+}
+
+void AMEWeapon::RefillMagazine()
+{
+	if (!Data)
+	{
+		return;
+	}
+
+	const int32 Loaded = FMath::Min(Data->MagazineSize - AmmoInMagazine, ReserveAmmo);
+	AmmoInMagazine += Loaded;
+	ReserveAmmo -= Loaded;
+}
+
 void AMEWeapon::PlayWeaponAnimation(UAnimSequenceBase* Animation)
 {
 	if (Animation)

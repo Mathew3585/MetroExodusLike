@@ -322,6 +322,9 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(InputConfig->CrouchAction, ETriggerEvent::Completed, this, &AMECharacter::CrouchReleased);
 	Input->BindAction(InputConfig->InteractAction, ETriggerEvent::Started, this, &AMECharacter::InteractPressed);
 	Input->BindAction(InputConfig->InteractAction, ETriggerEvent::Completed, this, &AMECharacter::InteractReleased);
+	Input->BindAction(InputConfig->FireAction, ETriggerEvent::Started, this, &AMECharacter::FirePressed);
+	Input->BindAction(InputConfig->FireAction, ETriggerEvent::Completed, this, &AMECharacter::FireReleased);
+	Input->BindAction(InputConfig->ReloadAction, ETriggerEvent::Started, this, &AMECharacter::ReloadPressed);
 }
 
 bool AMECharacter::CanInteract() const
@@ -332,6 +335,24 @@ bool AMECharacter::CanInteract() const
 void AMECharacter::InteractPressed()
 {
 	Interaction->BeginInteract();
+}
+
+void AMECharacter::FirePressed()
+{
+	// Firing ends the sprint: the weapon comes up
+	bWantsToSprint = false;
+	UpdateMaxWalkSpeed();
+	Weapons->StartFire();
+}
+
+void AMECharacter::FireReleased()
+{
+	Weapons->StopFire();
+}
+
+void AMECharacter::ReloadPressed()
+{
+	Weapons->Reload();
 }
 
 void AMECharacter::InteractReleased()
