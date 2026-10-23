@@ -1,5 +1,6 @@
 #include "Weapons/MEWeaponComponent.h"
 #include "Weapons/MEWeapon.h"
+#include "Weapons/MEShellCasing.h"
 #include "Weapons/MEWeaponData.h"
 #include "Player/MECharacter.h"
 #include "Player/MEFirstPersonAnimInstance.h"
@@ -257,6 +258,7 @@ void UMEWeaponComponent::FireShot()
 	{
 		UGameplayStatics::SpawnSoundAttached(Data->FireSound, Weapon->GetMesh());
 	}
+	EjectShell();
 
 	// Hitscan from the eye, inside the spread cone around the view (spread taken before this shot's bloom)
 	const UMEFirstPersonCameraComponent* Camera = Character->GetFirstPersonCamera();
@@ -282,6 +284,53 @@ void UMEWeaponComponent::FireShot()
 	}
 
 	PrintAmmo();
+}
+
+void UMEWeaponComponent::EjectShell()
+{
+	const FMEShellEjectSettings& Eject = GetWeaponData()->ShellEject;
+	if (!Eject.ShellClass)
+	{
+		return;
+	}
+
+	// Recycle the oldest casing once the limit is reached: no spawn / destroy while firing long bursts
+	AMEShellCasing* Casing = nullptr;
+	if (Casings.Num() < Eject.MaxCasings)
+	{
+		FActorSpawnParameters Params;
+		Params.Owner = Character;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Casing = GetWorld()->SpawnActor<AMEShellCasing>(Eject.ShellClass, Params);
+		if (Casing)
+		{
+			Casings.Add(Casing);
+		}
+	}
+	else
+	{
+		NextCasing %= Casings.Num();
+		Casing = Casings[NextCasing++];
+	}
+	if (!Casing)
+	{
+		return;
+	}
+
+	// Port in the world, then where the first-person weapon (drawn scaled toward the eye) shows it
+	const USkeletalMeshComponent* WeaponMesh = Weapon->GetMesh();
+	const FTransform Port = Eject.Bone.IsNone() ? WeaponMesh->GetComponentTransform() : WeaponMesh->GetSocketTransform(Eject.Bone);
+	const UMEFirstPersonCameraComponent* Camera = Character->GetFirstPersonCamera();
+	const FVector Location = Camera->GetFirstPersonVisualLocation(Port.TransformPosition(Eject.Location));
+
+	const FVector Direction = FMath::VRandCone(Port.TransformVectorNoScale(Eject.Direction.GetSafeNormal()), FMath::DegreesToRadians(Eject.DirectionVariation));
+	const float Speed = Eject.Speed * (1.f + FMath::FRandRange(-Eject.SpeedVariation, Eject.SpeedVariation));
+	// Thrown from a moving weapon: keeps the player's velocity, does not land on their feet when walking forward
+	const FVector Velocity = Direction * Speed + Character->GetVelocity();
+	const FVector AngularVelocity = FMath::VRand() * Eject.Spin;
+	const FRotator Rotation = FRotationMatrix::MakeFromZ(Port.TransformVectorNoScale(Eject.BarrelAxis)).Rotator();
+
+	Casing->Launch(Location, Rotation, Velocity, AngularVelocity, Camera->GetFirstPersonVisualScale());
 }
 
 void UMEWeaponComponent::Reload()
@@ -385,6 +434,15 @@ void UMEWeaponComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 	Weapon = nullptr;
 	WorldWeapon = nullptr;
+
+	for (AMEShellCasing* Casing : Casings)
+	{
+		if (Casing)
+		{
+			Casing->Destroy();
+		}
+	}
+	Casings.Reset();
 
 	Super::EndPlay(EndPlayReason);
 }

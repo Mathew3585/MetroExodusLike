@@ -7,6 +7,7 @@
 class AMECharacter;
 class UAudioComponent;
 class AMEWeapon;
+class AMEShellCasing;
 class UMEWeaponData;
 struct FMEWeaponAnimation;
 
@@ -110,6 +111,8 @@ private:
 	void UpdateRecoil(float DeltaTime);
 	void AddRecoil();
 	void FireShot();
+	/** Throws a casing out of the ejection port, where it is seen on screen. */
+	void EjectShell();
 	void FinishReload();
 	void PrintAmmo() const;
 
@@ -147,6 +150,11 @@ private:
 	FVector ArmsKick = FVector::ZeroVector;
 	FVector ArmsKickVelocity = FVector::ZeroVector;
 	float SpreadBloom = 0.f;
+
+	/** Casings in the world, reused oldest first past the weapon's limit. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<AMEShellCasing>> Casings;
+	int32 NextCasing = 0;
 
 	/** Until this time the weapon is drawing / reloading. */
 	double BusyUntil = 0.0;

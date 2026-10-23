@@ -4,6 +4,7 @@
 #include "Input/MEInputConfig.h"
 #include "Interaction/MEInteractionComponent.h"
 #include "UI/MEInteractionPromptWidget.h"
+#include "UI/MECrosshairWidget.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 
@@ -14,6 +15,20 @@ void AMEPlayerController::OnPossess(APawn* InPawn)
 	if (!IsLocalController())
 	{
 		return;
+	}
+
+	if (!Crosshair)
+	{
+		if (CrosshairClass)
+		{
+			Crosshair = CreateWidget<UMECrosshairWidget>(this, CrosshairClass);
+			Crosshair->SetDefaultCrosshair(DefaultCrosshair);
+			Crosshair->AddToViewport();
+		}
+		else
+		{
+			UE_LOG(LogME, Warning, TEXT("%s: CrosshairClass is not set, no crosshair."), *GetName());
+		}
 	}
 
 	if (!InteractionPrompt)

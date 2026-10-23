@@ -9,6 +9,8 @@ class USkeletalMesh;
 class UStaticMesh;
 class USoundBase;
 class UMEItemData;
+class UMECrosshairData;
+class AMEShellCasing;
 
 /** Animation authored for the first-person arms and the matching one for the weapon (same length, played together). */
 USTRUCT(BlueprintType)
@@ -108,6 +110,52 @@ struct FMESpreadSettings
 	/** How fast the shot bloom goes away. */
 	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "DegreesPerSecond"))
 	float RecoverySpeed = 6.f;
+};
+
+/** Spent casing thrown out of the ejection port on each shot. Location and directions are in the space of Bone. */
+USTRUCT(BlueprintType)
+struct FMEShellEjectSettings
+{
+	GENERATED_BODY()
+
+	/** Casing thrown on each shot. None = no casings. */
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AMEShellCasing> ShellClass;
+
+	/** Weapon bone the ejection port moves with. None = the weapon mesh origin. */
+	UPROPERTY(EditAnywhere)
+	FName Bone;
+
+	/** Ejection port. */
+	UPROPERTY(EditAnywhere)
+	FVector Location = FVector(-1.5f, 5.5f, 1.7f);
+
+	/** Throw direction (normalized in code). AR-15 mesh: -X is right, +Y forward, +Z up. */
+	UPROPERTY(EditAnywhere)
+	FVector Direction = FVector(-1.f, -0.3f, 0.6f);
+
+	/** Casing length axis when it leaves the port: along the barrel. */
+	UPROPERTY(EditAnywhere)
+	FVector BarrelAxis = FVector(0.f, 1.f, 0.f);
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "cm/s"))
+	float Speed = 300.f;
+
+	/** Random share of the speed, either way (0.2 = +/- 20%). */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
+	float SpeedVariation = 0.2f;
+
+	/** Random cone around the direction. */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "90", Units = "Degrees"))
+	float DirectionVariation = 12.f;
+
+	/** Tumble, random axis. */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "DegreesPerSecond"))
+	float Spin = 1200.f;
+
+	/** Casings kept in the world at once: past this the oldest one is reused. */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "1"))
+	int32 MaxCasings = 40;
 };
 
 /** Separate static part attached to a bone of the weapon (magazine, sights, stock...). */
@@ -252,6 +300,17 @@ public:
 	/** Played on every shot, at the weapon. */
 	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
 	TObjectPtr<USoundBase> FireSound;
+
+	// --- Effects ---
+
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	FMEShellEjectSettings ShellEject;
+
+	// --- UI ---
+
+	/** Hip-fire crosshair for this weapon only. None = the player's default crosshair. */
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TObjectPtr<UMECrosshairData> Crosshair;
 
 	// --- Aiming ---
 

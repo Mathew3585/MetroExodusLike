@@ -18,9 +18,10 @@ UMEFirstPersonCameraComponent::UMEFirstPersonCameraComponent()
 
 	// First person rendering: arms and weapon are pulled toward the eye so they never clip into walls.
 	// Scaling around the eye does not change the framing. A separate first-person FOV stays off for the same reason.
+	// Small enough that the muzzle stays closer than the capsule lets the eye get to a wall (near clip is 1 cm for the stock).
 	bEnableFirstPersonFieldOfView = false;
 	bEnableFirstPersonScale = true;
-	FirstPersonScale = 0.6f;
+	FirstPersonScale = 0.25f;
 
 	SprintBob.StepFrequency = 2.6f;
 	SprintBob.VerticalAmplitude = 1.2f;
@@ -213,6 +214,13 @@ void UMEFirstPersonCameraComponent::PlayHeavyLanding(float Duration)
 {
 	HeavyLandingElapsed = 0.f;
 	HeavyLandingDuration = FMath::Max(Duration, HeavyLandingDropTime + 0.1f);
+}
+
+FVector UMEFirstPersonCameraComponent::GetFirstPersonVisualLocation(const FVector& Location) const
+{
+	// The first-person scale shrinks primitives toward the eye
+	const FVector Eye = GetComponentLocation();
+	return Eye + (Location - Eye) * GetFirstPersonVisualScale();
 }
 
 void UMEFirstPersonCameraComponent::UpdateHeavyLanding(float DeltaTime, FRotator& OutRotation)

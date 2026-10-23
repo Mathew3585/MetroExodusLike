@@ -6,10 +6,12 @@
 
 class UMEInteractionComponent;
 class UMEInteractionPromptWidget;
+class UMECrosshairWidget;
+class UMECrosshairData;
 struct FMEInteractionInfo;
 
 /**
- * Player controller. Owns the UI (interaction prompt, later menus).
+ * Player controller. Owns the UI (interaction prompt, crosshair, later menus).
  */
 UCLASS()
 class METROEXODUSLIKE_API AMEPlayerController : public APlayerController
@@ -24,6 +26,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UMEInteractionPromptWidget> InteractionPromptClass;
 
+	/** Layout of the crosshair (WBP_Crosshair). */
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UMECrosshairWidget> CrosshairClass;
+
+	/** Crosshair of the whole game. A weapon can set its own. */
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TObjectPtr<UMECrosshairData> DefaultCrosshair;
+
 private:
 	void HandleInteractionFocusChanged(bool bHasFocus, const FMEInteractionInfo& Info);
 	void HandleInteractionProgress(float Progress);
@@ -33,6 +43,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMEInteractionPromptWidget> InteractionPrompt;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMECrosshairWidget> Crosshair;
 
 	TWeakObjectPtr<UMEInteractionComponent> BoundInteraction;
 };

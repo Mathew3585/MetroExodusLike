@@ -58,7 +58,9 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [x] 3.3 Tir hitscan depuis la vue (auto / semi, cadence exacte), munitions (chargeur + réserve), tir à vide, rechargement tactique / à vide, sons du pack par action
 - [x] 3.4 Visée (ADS : animations du pack, zoom, souffle retenu), recul procédural (vue + bras), dispersion (hanche / visée / mouvement / saut), inspection ; tirs et inspection interrompus au changement de posture
 - [x] 3.4b Objets ramassables par DataAsset (`UMEItemData` : munitions par calibre, ressources), inventaire (`UMEInventoryComponent`, max par objet), réserve de l'arme = munitions de son calibre dans l'inventaire (avance sur 7.1 / 7.2)
-- [ ] 3.5 Cibles avec santé (`UMEHealthComponent`, réutilisable partout)
+- [x] 3.4c Douilles éjectées : physique, vue FPS (partent de la fenêtre d'éjection telle qu'on la voit), 5 s au sol, pool de douilles recyclées, son d'impact prêt (à trouver)
+- [x] 3.4d Réticule dynamique par DataAsset (`UMECrosshairData`, images du pack CrosshairFreePack) : s'écarte avec la dispersion, disparaît en visée ; défaut sur le controller, surcharge possible par arme
+- [ ] 3.5 Cibles avec santé (`UMEHealthComponent`, réutilisable partout) + hit marker discret (images `T_HM_*`)
 - [ ] 3.6 Impacts : decals, particules, sons
 
 **Fini quand :** tirer sur des cibles est satisfaisant.

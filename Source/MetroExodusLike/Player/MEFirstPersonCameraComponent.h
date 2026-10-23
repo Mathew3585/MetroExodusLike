@@ -138,6 +138,15 @@ public:
 	/** Heavy landing: the view drops to the ground, then comes back up over Duration. */
 	void PlayHeavyLanding(float Duration);
 
+	/** Size first-person primitives are drawn at (scaled toward the eye so they don't clip into walls). */
+	float GetFirstPersonVisualScale() const { return bEnableFirstPersonScale ? FirstPersonScale : 1.f; }
+
+	/**
+	 * Where a point of a first-person primitive is seen in the world: world effects leaving the weapon
+	 * (casings...) start there to match what is on screen. Ignores the first-person field of view (not used).
+	 */
+	FVector GetFirstPersonVisualLocation(const FVector& Location) const;
+
 protected:
 	virtual void BeginPlay() override;
 
