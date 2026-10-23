@@ -381,10 +381,20 @@ void UMEWeaponComponent::EjectShell()
 		return;
 	}
 
-	// Port in the world, then where the first-person weapon (drawn scaled toward the eye) shows it
+	// The first-person weapon is drawn scaled toward the eye: the real port is seen at the same place on screen,
+	// so the casing flies from there at its real size and speed. Weapon against a wall: just in front of it.
 	const UArrowComponent* Port = Weapon->GetShellEjectPort();
-	const UMEFirstPersonCameraComponent* Camera = Character->GetFirstPersonCamera();
-	const FVector Location = Camera->GetFirstPersonVisualLocation(Port->GetComponentLocation());
+	const FVector Eye = Character->GetFirstPersonCamera()->GetComponentLocation();
+	FVector Location = Port->GetComponentLocation();
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(MEShellEject), false, Character);
+	Params.AddIgnoredActor(Weapon);
+	Params.AddIgnoredActor(WorldWeapon);
+	FHitResult Hit;
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Eye, Location, ECC_WorldStatic, Params))
+	{
+		Location = Hit.Location + (Eye - Location).GetSafeNormal() * 2.f;
+	}
 
 	const FVector Direction = FMath::VRandCone(Port->GetForwardVector(), FMath::DegreesToRadians(Eject.DirectionVariation));
 	const float Speed = Eject.Speed * (1.f + FMath::FRandRange(-Eject.SpeedVariation, Eject.SpeedVariation));
@@ -394,7 +404,7 @@ void UMEWeaponComponent::EjectShell()
 	// Leaves lying along the barrel
 	const FRotator Rotation = FRotationMatrix::MakeFromZ(Weapon->GetBarrelDirection()).Rotator();
 
-	Casing->Launch(Location, Rotation, Velocity, AngularVelocity, Camera->GetFirstPersonVisualScale());
+	Casing->Launch(Location, Rotation, Velocity, AngularVelocity);
 }
 
 void UMEWeaponComponent::Reload()

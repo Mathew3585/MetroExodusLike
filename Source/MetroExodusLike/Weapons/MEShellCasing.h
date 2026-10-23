@@ -5,6 +5,7 @@
 #include "MEShellCasing.generated.h"
 
 class UCapsuleComponent;
+class USceneComponent;
 class UStaticMeshComponent;
 class USoundBase;
 
@@ -23,11 +24,8 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	/**
-	 * Throws the casing from Location (where it is seen leaving the weapon).
-	 * StartScale: visual scale it starts at, grows to 1 in flight (first-person weapons are drawn scaled toward the eye).
-	 */
-	void Launch(const FVector& Location, const FRotator& Rotation, const FVector& Velocity, const FVector& AngularVelocity, float StartScale);
+	/** Throws the casing from Location, at its real size. */
+	void Launch(const FVector& Location, const FRotator& Rotation, const FVector& Velocity, const FVector& AngularVelocity);
 
 	/** Lying on the ground or flying: not yet expired. */
 	bool IsActive() const { return bActive; }
@@ -35,7 +33,11 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	/** Collision and physics body. Its axis is the length of the casing. */
+	/** Empty root: the collision and the mesh can be turned freely in the Blueprint. Its Z axis is laid along the barrel at launch. */
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<USceneComponent> Root;
+
+	/** Collision and physics body, attached to the root while waiting, free in the world while simulated. */
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UCapsuleComponent> Collision;
 
@@ -50,10 +52,6 @@ protected:
 	/** Shrink at the end of the lifetime, so it does not pop out. */
 	UPROPERTY(EditDefaultsOnly, Category = "Shell", meta = (ClampMin = "0", Units = "s"))
 	float ShrinkTime = 0.3f;
-
-	/** Time to grow from the first-person scale to its real size, while leaving the weapon. */
-	UPROPERTY(EditDefaultsOnly, Category = "Shell", meta = (ClampMin = "0.01", Units = "s"))
-	float GrowTime = 0.25f;
 
 	/** Tinkle on the ground. Optional. */
 	UPROPERTY(EditDefaultsOnly, Category = "Shell|Sound")
@@ -80,9 +78,11 @@ private:
 
 	void SetMeshScale(float Scale);
 
+	/** Collision placement set in the Blueprint, restored on each launch (simulating detaches it from the root). */
+	FTransform CollisionRelativeTransform;
+
 	bool bActive = false;
 	float Age = 0.f;
-	float StartScale = 1.f;
 	int32 ImpactSoundsPlayed = 0;
 	double LastImpactSoundTime = -1.0;
 	FTimerHandle LifetimeTimer;

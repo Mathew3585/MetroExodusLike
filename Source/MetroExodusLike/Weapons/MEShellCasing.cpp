@@ -7,9 +7,12 @@
 
 AMEShellCasing::AMEShellCasing()
 {
-	// Ticks only while growing out of the weapon and while shrinking away
+	// Ticks only while shrinking away
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
+
+	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	SetRootComponent(Root);
 
 	// Sized for a 5.56 casing, adjusted in the Blueprint for other calibers
 	Collision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Collision"));
@@ -27,7 +30,7 @@ AMEShellCasing::AMEShellCasing()
 	Collision->SetNotifyRigidBodyCollision(true);
 	Collision->SetCanEverAffectNavigation(false);
 	Collision->SetHiddenInGame(true);
-	SetRootComponent(Collision);
+	Collision->SetupAttachment(Root);
 
 	// Casing meshes are modeled along Y: turned to lie along the capsule axis
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
@@ -39,19 +42,23 @@ AMEShellCasing::AMEShellCasing()
 	SetActorHiddenInGame(true);
 }
 
-void AMEShellCasing::Launch(const FVector& Location, const FRotator& Rotation, const FVector& Velocity, const FVector& AngularVelocity, float InStartScale)
+void AMEShellCasing::Launch(const FVector& Location, const FRotator& Rotation, const FVector& Velocity, const FVector& AngularVelocity)
 {
+	// Reused while shrinking away: starts over
 	GetWorldTimerManager().ClearAllTimersForObject(this);
+	SetActorTickEnabled(false);
 
 	bActive = true;
 	Age = 0.f;
-	StartScale = InStartScale;
 	ImpactSoundsPlayed = 0;
 	LastImpactSoundTime = -1.0;
 
+	// Back on the root where the Blueprint placed it, then moved with the actor
 	Collision->SetSimulatePhysics(false);
+	Collision->AttachToComponent(Root, FAttachmentTransformRules::KeepRelativeTransform);
+	Collision->SetRelativeTransform(CollisionRelativeTransform);
 	SetActorLocationAndRotation(Location, Rotation, false, nullptr, ETeleportType::ResetPhysics);
-	SetMeshScale(StartScale);
+	SetMeshScale(1.f);
 	SetActorHiddenInGame(false);
 
 	Collision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -59,7 +66,13 @@ void AMEShellCasing::Launch(const FVector& Location, const FRotator& Rotation, c
 	Collision->SetPhysicsLinearVelocity(Velocity);
 	Collision->SetPhysicsAngularVelocityInDegrees(AngularVelocity);
 
-	SetActorTickEnabled(true);
+	// Lying on the ground until it starts shrinking
+	const float ShrinkStart = FMath::Max(Lifetime - ShrinkTime, 0.f);
+	GetWorldTimerManager().SetTimer(LifetimeTimer, FTimerDelegate::CreateWeakLambda(this, [this, ShrinkStart]()
+	{
+		Age = ShrinkStart;
+		SetActorTickEnabled(true);
+	}), FMath::Max(ShrinkStart, KINDA_SMALL_NUMBER), false);
 }
 
 void AMEShellCasing::Tick(float DeltaTime)
@@ -69,22 +82,7 @@ void AMEShellCasing::Tick(float DeltaTime)
 	Age += DeltaTime;
 	const float ShrinkStart = Lifetime - ShrinkTime;
 
-	if (Age < GrowTime)
-	{
-		SetMeshScale(FMath::Lerp(StartScale, 1.f, Age / GrowTime));
-	}
-	else if (Age < ShrinkStart)
-	{
-		// Lying on the ground: no need to tick until it starts shrinking
-		SetMeshScale(1.f);
-		SetActorTickEnabled(false);
-		GetWorldTimerManager().SetTimer(LifetimeTimer, FTimerDelegate::CreateWeakLambda(this, [this, ShrinkStart]()
-		{
-			Age = ShrinkStart;
-			SetActorTickEnabled(true);
-		}), ShrinkStart - Age, false);
-	}
-	else if (Age < Lifetime)
+	if (Age < Lifetime)
 	{
 		SetMeshScale(1.f - (Age - ShrinkStart) / FMath::Max(ShrinkTime, KINDA_SMALL_NUMBER));
 	}
@@ -115,6 +113,7 @@ void AMEShellCasing::BeginPlay()
 {
 	Super::BeginPlay();
 
+	CollisionRelativeTransform = Collision->GetRelativeTransform();
 	Collision->OnComponentHit.AddDynamic(this, &AMEShellCasing::HandleHit);
 }
 
