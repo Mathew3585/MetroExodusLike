@@ -53,8 +53,8 @@ void UMEWeaponComponent::Equip(UMEWeaponData* WeaponData)
 	Weapon->Initialize(WeaponData, true);
 
 	USkeletalMeshComponent* Arms = Character->GetFirstPersonArms();
-	Weapon->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponData->GripBone);
-	Weapon->SetActorRelativeTransform(WeaponData->GripOffset);
+	Weapon->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponData->ArmsGripBone);
+	Weapon->SetActorRelativeTransform(WeaponData->ArmsGripOffset);
 
 	if (UMEFirstPersonAnimInstance* ArmsAnim = Cast<UMEFirstPersonAnimInstance>(Arms->GetAnimInstance()))
 	{

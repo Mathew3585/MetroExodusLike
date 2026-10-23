@@ -78,9 +78,12 @@ Packs achetés ou importés : dans leur propre dossier (`QuantumCharacter/`, `Ch
 
 ## 6. Règles de design Metro (décidées)
 
-- **Hybride avec jambes (décidé en Phase 3)**, personnage **MetaHuman** (`Content/Characters/Player/`) : le MetaHuman complet (corps + tenue + visage) = corps du monde invisible (ombre, IA) avec l'arme du monde ; des **meshes découpés par script** (Geometry Script, par os dominant) dans `Characters/Player/FirstPerson/` : `SKM_Player_Arms_*` = bras FPS (depuis les clavicules) et `SKM_Player_Legs_*` = corps visible = **jambes seules** (bassin + jambes : jamais de torse, sinon les bras FPS rentrent dedans). Actions spéciales (escalade, takedown…) : « moment full body », on affiche le corps du monde.
+- **Hybride (décidé en Phase 3)**, personnage **MetaHuman** (`Content/Characters/Player/`), monté comme la démo du pack AR-15 :
+  - **Vue FPS** : `FirstPersonPivot` (hauteur des yeux, tourné avec la vue + head bob/respiration) → **bras FPS** du pack (squelette Mannequin) → **caméra sur l'os `head` des bras**. Les animations FPS du pack sont jouées **telles quelles** (jamais retargetées) : le cadrage et les mouvements de caméra sont ceux de l'animateur. L'arme FPS est sur `ik_hand_gun`.
+  - **Corps visible** = buste + jambes (`SKM_Player_Legs_*`, sans bras ni tête), sans ombre. **Corps du monde** = MetaHuman complet invisible (ombre, IA) avec l'arme du monde. Actions spéciales (escalade, takedown…) : « moment full body », on affiche le corps du monde.
+  - Regard vers le bas limité (`MinViewPitch`), caméra avancée (`EyeOffset`) et corps qui suit la vue quand on regarde en bas : le buste reste sous les bras.
 - **Near clip plane à 2 cm** (`DefaultEngine.ini`) : l'arrière de l'arme est à quelques cm de l'œil.
-- **Animations MetaHuman** : toujours **retargetées** sur `metahuman_base_skel` (jamais « compatible skeletons » : orientations d'os différentes). Le squelette MetaHuman est partagé, les proportions viennent du mesh : mesurer les poses avec `optional_skeletal_mesh`. Pas d'os `ik_*` : l'arme est tenue par `hand_r` + `GripOffset` (DataAsset de l'arme).
+- **Animations du corps MetaHuman** (corps visible et du monde) : toujours **retargetées** sur `metahuman_base_skel` (jamais « compatible skeletons » : orientations d'os différentes). Le squelette MetaHuman est partagé, les proportions viennent du mesh : mesurer les poses avec `optional_skeletal_mesh`. Pas d'os `ik_*` : l'arme est tenue par `hand_r` + `GripOffset` (DataAsset de l'arme).
 - **Toujours armé** : pas de touche pour ranger l'arme, sauf zones sûres scriptées.
 - **Main gauche** pour toutes les interactions, l'arme reste en main droite.
 - **Équipement lourd** : les réceptions de grande hauteur arrêtent net le personnage.

@@ -5,9 +5,11 @@
 #include "Player/MEAnimInstance.h"
 #include "Interaction/MEInteractionComponent.h"
 #include "Weapons/MEWeaponComponent.h"
+#include "AnimationRuntime.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/LocalPlayer.h"
+#include "Camera/PlayerCameraManager.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
@@ -41,24 +43,26 @@ AMECharacter::AMECharacter()
 	// Hidden meshes skip bone updates by default: the shadow would freeze
 	ShadowMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 
-	// Places itself on the head bone every frame and adds the procedural motion
-	FirstPersonCamera = CreateDefaultSubobject<UMEFirstPersonCameraComponent>(TEXT("FirstPersonCamera"));
-	FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
-	FirstPersonCamera->SetRelativeLocation(FVector(0.f, 0.f, BaseEyeHeight)); // Until the first update
+	// Head pivot: the camera component moves it with the view every frame (placement, bob, breathing, impacts...)
+	FirstPersonPivot = CreateDefaultSubobject<USceneComponent>(TEXT("FirstPersonPivot"));
+	FirstPersonPivot->SetupAttachment(GetCapsuleComponent());
+	FirstPersonPivot->SetRelativeLocation(FVector(0.f, 0.f, BaseEyeHeight)); // Until the first update
 
-	// View model: the camera moves this pivot with the view (bob, breathing, impacts...)
-	ViewModelPivot = CreateDefaultSubobject<USceneComponent>(TEXT("ViewModelPivot"));
-	ViewModelPivot->SetupAttachment(FirstPersonCamera);
-
-	// First-person arms holding the weapon, placed so their head bone sits on the camera
+	// First-person arms, offset so their head bone sits on the pivot (see PlaceArmsOnPivot): they turn around the head
 	FirstPersonArms = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonArms"));
-	FirstPersonArms->SetupAttachment(ViewModelPivot);
+	FirstPersonArms->SetupAttachment(FirstPersonPivot);
 	FirstPersonArms->SetRelativeLocationAndRotation(FVector(-0.7f, 0.f, -162.6f), FRotator(0.f, -90.f, 0.f));
 	FirstPersonArms->SetOnlyOwnerSee(true);
 	FirstPersonArms->SetCastShadow(false);
 	FirstPersonArms->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	FirstPersonArms->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::FirstPerson);
 	FirstPersonArms->SetForcedLOD(1);
+
+	// On the arms' head bone, like the animation pack: the arm animations move the view exactly as authored.
+	// The rotation turns the bone axes of the Mannequin head into a camera looking forward.
+	FirstPersonCamera = CreateDefaultSubobject<UMEFirstPersonCameraComponent>(TEXT("FirstPersonCamera"));
+	FirstPersonCamera->SetupAttachment(FirstPersonArms, TEXT("head"));
+	FirstPersonCamera->SetRelativeRotation(FRotator(0.f, 90.f, -90.f));
 
 	Interaction = CreateDefaultSubobject<UMEInteractionComponent>(TEXT("Interaction"));
 	Weapons = CreateDefaultSubobject<UMEWeaponComponent>(TEXT("Weapons"));
@@ -102,7 +106,8 @@ void AMECharacter::BeginPlay()
 		Part->bCastHiddenShadow = true;
 	}
 
-	FirstPersonCamera->SetViewModelPivot(ViewModelPivot);
+	PlaceArmsOnPivot();
+	FirstPersonCamera->SetViewPivot(FirstPersonPivot);
 
 	// Picks up the value edited in the Blueprint
 	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed;
@@ -173,6 +178,22 @@ TArray<USkeletalMeshComponent*> AMECharacter::AddMeshParts(USkeletalMeshComponen
 	return Parts;
 }
 
+void AMECharacter::PlaceArmsOnPivot()
+{
+	// The camera bone (head) must sit exactly on the pivot, whatever the arms mesh
+	const USkeletalMesh* ArmsMesh = FirstPersonArms->GetSkeletalMeshAsset();
+	const FName CameraBone = FirstPersonCamera->GetAttachSocketName();
+	const int32 BoneIndex = ArmsMesh ? ArmsMesh->GetRefSkeleton().FindBoneIndex(CameraBone) : INDEX_NONE;
+	if (BoneIndex == INDEX_NONE)
+	{
+		UE_LOG(LogME, Warning, TEXT("%s: first-person arms have no '%s' bone, the camera cannot follow them."), *GetName(), *CameraBone.ToString());
+		return;
+	}
+
+	const FVector BoneInMesh = FAnimationRuntime::GetComponentSpaceTransformRefPose(ArmsMesh->GetRefSkeleton(), BoneIndex).GetLocation();
+	FirstPersonArms->SetRelativeLocation(-FirstPersonArms->GetRelativeRotation().RotateVector(BoneInMesh));
+}
+
 void AMECharacter::SetBodyWeaponPose(UAnimSequenceBase* Pose)
 {
 	ForEachBodyAnimInstance([Pose](UMEAnimInstance& AnimInstance) { AnimInstance.SetWeaponPose(Pose); });
@@ -231,7 +252,11 @@ void AMECharacter::UpdateBodyRotation(float DeltaSeconds)
 	}
 
 	// Standing still: the body only turns once the view is too far from it, stepping with the turn animation
-	if (!bIsTurningInPlace && FMath::Abs(Offset) > TurnInPlaceThreshold)
+	// Looking down, the body must stay under the arms: the threshold shrinks with the pitch
+	const float LookDownAlpha = FMath::Clamp(-FRotator::NormalizeAxis(GetControlRotation().Pitch) / 45.f, 0.f, 1.f);
+	const float Threshold = FMath::Lerp(TurnInPlaceThreshold, LookingDownTurnInPlaceThreshold, LookDownAlpha);
+
+	if (!bIsTurningInPlace && FMath::Abs(Offset) > Threshold)
 	{
 		bIsTurningInPlace = true;
 		const bool bTurnRight = Offset > 0.f;
@@ -258,6 +283,11 @@ void AMECharacter::NotifyControllerChanged()
 	Super::NotifyControllerChanged();
 
 	const APlayerController* PC = Cast<APlayerController>(Controller);
+	if (PC && PC->PlayerCameraManager)
+	{
+		PC->PlayerCameraManager->ViewPitchMin = MinViewPitch;
+	}
+
 	if (!PC || !InputConfig || !InputConfig->DefaultMappingContext)
 	{
 		return;

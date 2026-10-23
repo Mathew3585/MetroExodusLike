@@ -8,11 +8,15 @@ UMEFirstPersonCameraComponent::UMEFirstPersonCameraComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PostPhysics;
 
-	bUsePawnControlRotation = true;
+	// The view follows the head bone of the arms, the pivot carries the control rotation
+	bUsePawnControlRotation = false;
 
-	// First person rendering: arms and weapon get their own FOV and are pulled toward the eye, so they never clip into walls
-	bEnableFirstPersonFieldOfView = true;
-	FirstPersonFieldOfView = 70.f;
+	// Same framing as the arm animations were authored with
+	FieldOfView = 90.f;
+
+	// First person rendering: arms and weapon are pulled toward the eye so they never clip into walls.
+	// Scaling around the eye does not change the framing. A separate first-person FOV stays off for the same reason.
+	bEnableFirstPersonFieldOfView = false;
 	bEnableFirstPersonScale = true;
 	FirstPersonScale = 0.6f;
 
@@ -38,12 +42,12 @@ void UMEFirstPersonCameraComponent::TickComponent(float DeltaTime, ELevelTick Ti
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!Character || !Character->GetMesh()->GetSkeletalMeshAsset())
+	if (!Character || !ViewPivot || !Character->GetMesh()->GetSkeletalMeshAsset())
 	{
 		return;
 	}
 
-	UpdatePlacement(DeltaTime);
+	const FVector PivotLocation = UpdatePlacement(DeltaTime);
 
 	FVector OffsetLocation = FVector::ZeroVector;
 	FRotator OffsetRotation = FRotator::ZeroRotator;
@@ -53,23 +57,12 @@ void UMEFirstPersonCameraComponent::TickComponent(float DeltaTime, ELevelTick Ti
 	UpdateStrafeTilt(DeltaTime, OffsetRotation);
 	UpdateHeavyLanding(DeltaTime, OffsetRotation);
 
-	ProceduralOffset = FTransform(OffsetRotation, OffsetLocation);
-	ClearAdditiveOffset();
-	AddAdditiveOffset(ProceduralOffset, 0.f);
+	// Arms and camera follow: the view turns around the head, the procedural motion is in view space
+	const FTransform View(Character->GetControlRotation(), PivotLocation);
+	ViewPivot->SetWorldTransform(FTransform(OffsetRotation, OffsetLocation) * View);
 }
 
-void UMEFirstPersonCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
-{
-	// Applies the pawn control rotation to this component, then the additive offset to the view
-	Super::GetCameraView(DeltaTime, DesiredView);
-
-	if (ViewModelPivot)
-	{
-		ViewModelPivot->SetRelativeTransform(ProceduralOffset);
-	}
-}
-
-void UMEFirstPersonCameraComponent::UpdatePlacement(float DeltaTime)
+FVector UMEFirstPersonCameraComponent::UpdatePlacement(float DeltaTime)
 {
 	const FVector ActorLocation = Character->GetActorLocation();
 	const FRotator ViewYaw(0.f, Character->GetControlRotation().Yaw, 0.f);
@@ -98,7 +91,7 @@ void UMEFirstPersonCameraComponent::UpdatePlacement(float DeltaTime)
 	}
 	bHasPlacement = true;
 
-	SetWorldLocation(ActorLocation + ViewYaw.RotateVector(SmoothedLocalOffset));
+	return ActorLocation + ViewYaw.RotateVector(SmoothedLocalOffset);
 }
 
 void UMEFirstPersonCameraComponent::UpdateHeadBob(float DeltaTime, FVector& OutLocation, FRotator& OutRotation)

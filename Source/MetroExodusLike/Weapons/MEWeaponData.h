@@ -57,18 +57,28 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Visuals")
 	TArray<FMEWeaponPart> Parts;
 
-	/**
-	 * Hand bone holding the weapon, in the first-person arms and in the world body.
-	 * A hand rather than an IK bone: not every skeleton has IK bones (MetaHumans don't).
-	 */
-	UPROPERTY(EditDefaultsOnly, Category = "Visuals")
-	FName GripBone = TEXT("hand_r");
+	// --- First-person arms ---
 
-	/** Weapon placement relative to GripBone, measured on the arms animations. */
-	UPROPERTY(EditDefaultsOnly, Category = "Visuals")
-	FTransform GripOffset;
+	/** Bone of the first-person arms holding the weapon: the gun bone the arm animations were authored with. */
+	UPROPERTY(EditDefaultsOnly, Category = "First Person")
+	FName ArmsGripBone = TEXT("ik_hand_gun");
+
+	/** Weapon placement relative to ArmsGripBone (identity when the animations come with the weapon). */
+	UPROPERTY(EditDefaultsOnly, Category = "First Person")
+	FTransform ArmsGripOffset;
 
 	// --- World body (shadow, what the AI sees) ---
+
+	/**
+	 * Hand bone of the world body holding the weapon.
+	 * A hand rather than an IK bone: not every skeleton has IK bones (MetaHumans don't).
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "World Body")
+	FName GripBone = TEXT("hand_r");
+
+	/** Weapon placement relative to GripBone, measured on the world body's hold pose. */
+	UPROPERTY(EditDefaultsOnly, Category = "World Body")
+	FTransform GripOffset;
 
 	/** Upper-body pose of the world body holding this weapon. */
 	UPROPERTY(EditDefaultsOnly, Category = "World Body")

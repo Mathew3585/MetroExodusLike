@@ -13,8 +13,10 @@ class UAnimSequenceBase;
 struct FInputActionValue;
 
 /**
- * True first-person player character: a full body (without head) is visible,
- * and the camera follows the head bone.
+ * Hybrid first-person player character, built like the AR-15 pack demo:
+ *  - head pivot (eye height, turned with the view) -> first-person arms -> camera on the arms' head bone,
+ *    so the arm animations frame the weapon and move the view exactly as authored;
+ *  - visible body = legs only; world body = hidden full body holding the world weapon (shadow, AI).
  */
 UCLASS()
 class METROEXODUSLIKE_API AMECharacter : public ACharacter
@@ -60,11 +62,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> ShadowMesh;
 
-	/** Moved by the camera with the view, carries the first-person arms. */
+	/** Head pivot at eye height, turned with the view by the camera component. Carries the arms and the camera. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USceneComponent> ViewModelPivot;
+	TObjectPtr<USceneComponent> FirstPersonPivot;
 
-	/** First-person arms (view model) holding the weapon. Only the player sees them. */
+	/** First-person arms (view model) holding the weapon. Only the player sees them. The camera is on their head bone. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> FirstPersonArms;
 
@@ -92,6 +94,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	TObjectPtr<UMEInputConfig> InputConfig;
 
+	/** Lowest view pitch: below it the view would sink into the visible body. */
+	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (ClampMin = "-89", ClampMax = "0", Units = "Degrees"))
+	float MinViewPitch = -65.f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Movement", meta = (ClampMin = "0", Units = "cm/s"))
 	float WalkSpeed = 350.f;
 
@@ -112,6 +118,13 @@ protected:
 	/** Standing still, the body turns once the view is this far from it. */
 	UPROPERTY(EditDefaultsOnly, Category = "Movement|Body Rotation", meta = (ClampMin = "0", ClampMax = "180", Units = "Degrees"))
 	float TurnInPlaceThreshold = 70.f;
+
+	/**
+	 * Turn-in-place threshold when looking straight down: the body follows the view closer,
+	 * so the shoulders do not show under the first-person arms.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Body Rotation", meta = (ClampMin = "0", ClampMax = "180", Units = "Degrees"))
+	float LookingDownTurnInPlaceThreshold = 20.f;
 
 	/** How fast the body turns in place to catch up with the view. */
 	UPROPERTY(EditDefaultsOnly, Category = "Movement|Body Rotation", meta = (ClampMin = "0", Units = "DegreesPerSecond"))
@@ -163,6 +176,7 @@ private:
 	void UpdateMaxWalkSpeed();
 	void UpdateBodyRotation(float DeltaSeconds);
 	void UpdateLandingRecovery(float DeltaSeconds);
+	void PlaceArmsOnPivot();
 	void ForEachBodyAnimInstance(TFunctionRef<void(UMEAnimInstance&)> Function) const;
 
 	/** Spawns a component per mesh, attached to the leader and copying its pose. */

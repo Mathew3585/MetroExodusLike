@@ -101,13 +101,14 @@ struct FMEImpactSettings
 };
 
 /**
- * True first-person camera, built in layers every frame:
- *  1. Placement: follows the head bone (per-axis follow amount + optional smoothing)
+ * First-person camera, sitting on the head bone of the first-person arms (the arm animations move it as authored).
+ * It drives the head pivot carrying the arms and itself, built in layers every frame:
+ *  1. Placement: follows the body's head bone (per-axis follow amount + optional smoothing), turned with the view
  *  2. Head bob: walk / sprint sway
  *  3. Breathing: rested to exhausted, can be held
  *  4. Impacts: spring on jump and landing
  *  5. Strafe tilt: slight roll when moving sideways
- * Layers 2-5 are applied as an additive offset in camera space.
+ * Layers 2-5 are an offset in view space: arms and view move together, the weapon stays in frame.
  */
 UCLASS(ClassGroup = (Camera), meta = (BlueprintSpawnableComponent))
 class METROEXODUSLIKE_API UMEFirstPersonCameraComponent : public UCameraComponent
@@ -118,10 +119,9 @@ public:
 	UMEFirstPersonCameraComponent();
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	virtual void GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView) override;
 
-	/** The first-person arms pivot: it gets the same procedural motion as the view, so the weapon stays in frame. */
-	void SetViewModelPivot(USceneComponent* Pivot) { ViewModelPivot = Pivot; }
+	/** Head pivot carrying the first-person arms and this camera: placed and turned with the view every frame. */
+	void SetViewPivot(USceneComponent* Pivot) { ViewPivot = Pivot; }
 
 	/** Hold breath (aiming, gas mask...): breathing motion fades out. */
 	UFUNCTION(BlueprintCallable, Category = "Camera|Breathing")
@@ -143,11 +143,11 @@ protected:
 
 	// --- Placement ---
 
-	/** Bone the camera follows. */
+	/** Bone of the body the view follows (crouch, lean...). */
 	UPROPERTY(EditAnywhere, Category = "Camera|Placement")
 	FName HeadBoneName = TEXT("head");
 
-	/** Eye position relative to the head bone, in view-yaw space (X forward, Z up). */
+	/** Pivot (= camera bone of the arms) relative to the body's head bone, in view-yaw space (X forward, Z up). */
 	UPROPERTY(EditAnywhere, Category = "Camera|Placement")
 	FVector EyeOffset = FVector(10.f, 0.f, 6.f);
 
@@ -213,7 +213,8 @@ protected:
 	float StrafeRollSpeed = 5.f;
 
 private:
-	void UpdatePlacement(float DeltaTime);
+	/** Returns the world location of the pivot. */
+	FVector UpdatePlacement(float DeltaTime);
 	void UpdateHeadBob(float DeltaTime, FVector& OutLocation, FRotator& OutRotation);
 	void UpdateBreathing(float DeltaTime, FVector& OutLocation, FRotator& OutRotation);
 	void UpdateImpacts(float DeltaTime, FVector& OutLocation, FRotator& OutRotation);
@@ -224,10 +225,7 @@ private:
 	TObjectPtr<AMECharacter> Character;
 
 	UPROPERTY(Transient)
-	TObjectPtr<USceneComponent> ViewModelPivot;
-
-	/** Procedural offset of this frame (layers 2-5), applied to the view and to the view model. */
-	FTransform ProceduralOffset = FTransform::Identity;
+	TObjectPtr<USceneComponent> ViewPivot;
 
 	// Placement
 	FVector SmoothedLocalOffset = FVector::ZeroVector;

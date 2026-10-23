@@ -50,7 +50,9 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 ## Phase 3 — Première arme
 - [x] 3.0 Retarget des animations du pack AR-15 (Manny → squelette Quantum, `ik_hand_gun` conservé)
 - [x] 3.1 `UMEWeaponData` (DataAsset) + `AMEWeapon` + `UMEWeaponComponent`
-- [ ] 3.2 Bras FPS + AR-15 en main (hybride, First Person Rendering) + zones sûres (volume qui range l'arme)
+- [x] 3.2 Bras FPS + AR-15 en main, montage de la démo du pack : pivot tête (suit la vue) → bras → caméra sur l'os `head` des bras ; animations du pack jouées telles quelles (pas de retarget), First Person Rendering, buste + jambes visibles, regard bas limité
+- [ ] 3.2a Bras du MetaHuman à la place des bras du pack (retarget en temps réel depuis les bras du pack)
+- [ ] 3.2c Zones sûres (volume qui range l'arme)
 - [ ] 3.2b Gestes main gauche branchés sur les interactions (ramasser, porte, interrupteur)
 - [ ] 3.3 Tir hitscan, munitions, rechargement
 - [ ] 3.4 Recul, dispersion, visée (ADS)
