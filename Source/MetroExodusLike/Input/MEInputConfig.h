@@ -49,4 +49,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
 	TObjectPtr<UInputAction> InspectAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
+	TObjectPtr<UInputAction> SwitchFireModeAction;
 };

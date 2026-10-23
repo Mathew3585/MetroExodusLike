@@ -1,12 +1,14 @@
 #include "Weapons/MEWeaponComponent.h"
+#include "MetroExodusLike.h"
 #include "Weapons/MEWeapon.h"
-#include "Weapons/MEShellCasing.h"
 #include "Weapons/MEWeaponData.h"
+#include "Weapons/MEShellCasing.h"
 #include "Player/MECharacter.h"
 #include "Player/MEFirstPersonAnimInstance.h"
 #include "Player/MEFirstPersonCameraComponent.h"
 #include "Inventory/MEInventoryComponent.h"
 #include "Combat/MEHealthComponent.h"
+#include "Combat/MEImpactData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "Engine/World.h"
@@ -15,17 +17,13 @@
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/ArrowComponent.h"
 #include "Components/AudioComponent.h"
-#include "Components/PointLightComponent.h"
-#include "Combat/MEImpactData.h"
-#include "NiagaraComponent.h"
-#include "NiagaraFunctionLibrary.h"
 
 UMEWeaponComponent::UMEWeaponComponent()
 {
 	// Ticks for the wall check
 	PrimaryComponentTick.bCanEverTick = true;
-	WeaponClass = AMEWeapon::StaticClass();
 }
 
 UMEWeaponData* UMEWeaponComponent::GetWeaponData() const
@@ -41,7 +39,6 @@ void UMEWeaponComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	UpdateAiming(DeltaTime);
 	UpdateFiring();
 	UpdateRecoil(DeltaTime);
-	UpdateMuzzleLight(DeltaTime);
 }
 
 void UMEWeaponComponent::UpdateAiming(float DeltaTime)
@@ -76,6 +73,30 @@ void UMEWeaponComponent::Inspect()
 	PlayAction(bEmpty ? Data->InspectEmpty : Data->Inspect, true);
 }
 
+void UMEWeaponComponent::SwitchFireMode()
+{
+	const UMEWeaponData* Data = GetWeaponData();
+	if (!Data || IsBusy() || Character->IsSprinting() || !Weapon->CycleFireMode())
+	{
+		return;
+	}
+
+	// A burst in progress stops with the selector
+	BurstShotsLeft = 0;
+
+	if (const FMEWeaponAnimation* Switch = Data->FireModeSwitch.Find(Weapon->GetFireMode()))
+	{
+		// The selector clips are hip poses: aiming, only the weapon and the click play so the sights stay up
+		FMEWeaponAnimation Action = *Switch;
+		if (AimAlpha > 0.5f)
+		{
+			Action.Arms = nullptr;
+		}
+		PlayAction(Action, true);
+	}
+	PrintAmmo();
+}
+
 int32 UMEWeaponComponent::GetReserveAmmo() const
 {
 	const UMEWeaponData* Data = GetWeaponData();
@@ -98,13 +119,13 @@ void UMEWeaponComponent::InterruptAction()
 		return;
 	}
 	bActionInterruptible = false;
+	const UMEWeaponData* Data = GetWeaponData();
 
 	if (UMEFirstPersonAnimInstance* ArmsAnim = Cast<UMEFirstPersonAnimInstance>(Character->GetFirstPersonArms()->GetAnimInstance()))
 	{
 		ArmsAnim->StopAction(InterruptBlendOutTime);
 	}
 
-	const UMEWeaponData* Data = GetWeaponData();
 	Weapon->PlayWeaponAnimation(Weapon->GetAmmoInMagazine() == 0 && Data->WeaponEmptyPose ? Data->WeaponEmptyPose : Data->WeaponIdlePose);
 
 	if (UAudioComponent* Sound = ActionSound.Get())
@@ -151,8 +172,8 @@ void UMEWeaponComponent::AddRecoil()
 
 void UMEWeaponComponent::UpdateRecoil(float DeltaTime)
 {
-	const UMEWeaponData* Data = GetWeaponData();
 	AController* Controller = Character ? Character->GetController() : nullptr;
+	const UMEWeaponData* Data = GetWeaponData();
 	if (!Data || !Controller)
 	{
 		return;
@@ -206,6 +227,11 @@ void UMEWeaponComponent::StartFire()
 {
 	bWantsToFire = true;
 	bFiredThisPress = false;
+	const UMEWeaponData* Data = GetWeaponData();
+	if (Data && Weapon->GetFireMode() == EMEFireMode::Burst && BurstShotsLeft == 0)
+	{
+		BurstShotsLeft = Data->BurstCount;
+	}
 	UpdateFiring();
 }
 
@@ -217,15 +243,30 @@ void UMEWeaponComponent::StopFire()
 void UMEWeaponComponent::UpdateFiring()
 {
 	const UMEWeaponData* Data = GetWeaponData();
-	if (!bWantsToFire || !Data || (!Data->bFullAuto && bFiredThisPress))
+	if (!Data)
+	{
+		return;
+	}
+
+	// Single: one shot per pull. Burst: goes on until done, trigger held or not. Auto: while held.
+	const EMEFireMode Mode = Weapon->GetFireMode();
+	const bool bTriggerFires = Mode == EMEFireMode::Burst ? BurstShotsLeft > 0
+		: bWantsToFire && (Mode == EMEFireMode::Auto || !bFiredThisPress);
+	if (!bTriggerFires)
 	{
 		return;
 	}
 
 	const double Now = GetWorld()->GetTimeSeconds();
 	const double Interval = 60.0 / Data->RoundsPerMinute;
-	if (Now - LastShotTime < Interval || IsBusy() || Character->IsSprinting() || WallBlockAmount > MaxWallBlockToFire)
+	if (Now - LastShotTime < Interval)
 	{
+		return;
+	}
+	if (IsBusy() || Character->IsSprinting() || WallBlockAmount > MaxWallBlockToFire)
+	{
+		// Something got in the way: the rest of the burst is lost
+		BurstShotsLeft = 0;
 		return;
 	}
 
@@ -243,19 +284,20 @@ void UMEWeaponComponent::UpdateFiring()
 			PlayAction(DryFire, true);
 		}
 		bFiredThisPress = true;
+		BurstShotsLeft = 0;
 		return;
 	}
 
 	// Holding the trigger keeps the exact rate, whatever the frame rate
 	LastShotTime = (Now - LastShotTime < Interval * 2.0) ? LastShotTime + Interval : Now;
 	bFiredThisPress = true;
+	BurstShotsLeft = FMath::Max(0, BurstShotsLeft - 1);
 	FireShot();
 }
 
 void UMEWeaponComponent::FireShot()
 {
 	const UMEWeaponData* Data = GetWeaponData();
-
 	Weapon->ConsumeRound();
 	const bool bLastRound = Weapon->GetAmmoInMagazine() == 0 && Data->FireLast.Arms;
 	const bool bAiming = AimAlpha > 0.5f && Data->AimFire.Arms;
@@ -264,11 +306,12 @@ void UMEWeaponComponent::FireShot()
 	{
 		UGameplayStatics::SpawnSoundAttached(Data->FireSound, Weapon->GetMesh());
 	}
+
+	const UMEFirstPersonCameraComponent* Camera = Character->GetFirstPersonCamera();
 	EjectShell();
-	PlayMuzzleFlash();
+	Weapon->PlayMuzzleFlash(Camera->GetComponentLocation());
 
 	// Hitscan from the eye, inside the spread cone around the view (spread taken before this shot's bloom)
-	const UMEFirstPersonCameraComponent* Camera = Character->GetFirstPersonCamera();
 	const FVector Start = Camera->GetComponentLocation();
 	const FVector Direction = FMath::VRandCone(Camera->GetForwardVector(), FMath::DegreesToRadians(GetSpreadAngle()));
 	AddRecoil();
@@ -339,87 +382,19 @@ void UMEWeaponComponent::EjectShell()
 	}
 
 	// Port in the world, then where the first-person weapon (drawn scaled toward the eye) shows it
-	const USkeletalMeshComponent* WeaponMesh = Weapon->GetMesh();
-	const FTransform Port = Eject.Bone.IsNone() ? WeaponMesh->GetComponentTransform() : WeaponMesh->GetSocketTransform(Eject.Bone);
+	const UArrowComponent* Port = Weapon->GetShellEjectPort();
 	const UMEFirstPersonCameraComponent* Camera = Character->GetFirstPersonCamera();
-	const FVector Location = Camera->GetFirstPersonVisualLocation(Port.TransformPosition(Eject.Location));
+	const FVector Location = Camera->GetFirstPersonVisualLocation(Port->GetComponentLocation());
 
-	const FVector Direction = FMath::VRandCone(Port.TransformVectorNoScale(Eject.Direction.GetSafeNormal()), FMath::DegreesToRadians(Eject.DirectionVariation));
+	const FVector Direction = FMath::VRandCone(Port->GetForwardVector(), FMath::DegreesToRadians(Eject.DirectionVariation));
 	const float Speed = Eject.Speed * (1.f + FMath::FRandRange(-Eject.SpeedVariation, Eject.SpeedVariation));
 	// Thrown from a moving weapon: keeps the player's velocity, does not land on their feet when walking forward
 	const FVector Velocity = Direction * Speed + Character->GetVelocity();
 	const FVector AngularVelocity = FMath::VRand() * Eject.Spin;
-	const FRotator Rotation = FRotationMatrix::MakeFromZ(Port.TransformVectorNoScale(Eject.BarrelAxis)).Rotator();
+	// Leaves lying along the barrel
+	const FRotator Rotation = FRotationMatrix::MakeFromZ(Weapon->GetBarrelDirection()).Rotator();
 
 	Casing->Launch(Location, Rotation, Velocity, AngularVelocity, Camera->GetFirstPersonVisualScale());
-}
-
-void UMEWeaponComponent::PlayMuzzleFlash()
-{
-	const FMEMuzzleSettings& Muzzle = GetWeaponData()->Muzzle;
-	USkeletalMeshComponent* WeaponMesh = Weapon->GetMesh();
-
-	if (Muzzle.Flash)
-	{
-		const FRotator Rotation = FRotationMatrix::MakeFromX(Muzzle.BarrelAxis).Rotator();
-		if (UNiagaraComponent* Flash = UNiagaraFunctionLibrary::SpawnSystemAttached(Muzzle.Flash, WeaponMesh, Muzzle.Bone,
-			Muzzle.Offset, Rotation, EAttachLocation::KeepRelativeOffset, true))
-		{
-			// Drawn like the weapon (scaled toward the eye), or it would float away from the barrel
-			Flash->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::FirstPerson);
-			Flash->SetCastShadow(false);
-		}
-	}
-
-	if (Muzzle.LightIntensity <= 0.f)
-	{
-		return;
-	}
-	if (!MuzzleLight)
-	{
-		MuzzleLight = NewObject<UPointLightComponent>(Character);
-		MuzzleLight->SetCastShadows(false);
-		MuzzleLight->SetIntensityUnits(ELightUnits::Candelas);
-		MuzzleLight->SetVisibility(false);
-		MuzzleLight->RegisterComponent();
-	}
-	MuzzleLight->SetIntensity(Muzzle.LightIntensity);
-	MuzzleLight->SetAttenuationRadius(Muzzle.LightRadius);
-	MuzzleLight->SetLightColor(Muzzle.LightColor);
-	MuzzleLightAlpha = 1.f;
-	MuzzleLight->SetVisibility(true);
-	UpdateMuzzleLight(0.f);
-}
-
-void UMEWeaponComponent::UpdateMuzzleLight(float DeltaTime)
-{
-	if (!MuzzleLight || MuzzleLightAlpha <= 0.f)
-	{
-		return;
-	}
-
-	const FMEMuzzleSettings& Muzzle = GetWeaponData()->Muzzle;
-	MuzzleLightAlpha = FMath::Max(0.f, MuzzleLightAlpha - DeltaTime / Muzzle.LightDuration);
-	if (MuzzleLightAlpha <= 0.f)
-	{
-		MuzzleLight->SetVisibility(false);
-		return;
-	}
-
-	// At the real muzzle, out in front: the light must come from the barrel, not from the eye.
-	// The muzzle can be inside a wall (the weapon is drawn scaled toward the eye): pulled back to our side of it
-	const FVector Eye = Character->GetFirstPersonCamera()->GetComponentLocation();
-	const FVector MuzzleLocation = Weapon->GetMesh()->GetSocketTransform(Muzzle.Bone).TransformPosition(Muzzle.Offset);
-
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(MEMuzzleLight), false, Character);
-	Params.AddIgnoredActor(Weapon);
-	Params.AddIgnoredActor(WorldWeapon);
-	FHitResult Hit;
-	const bool bBlocked = GetWorld()->LineTraceSingleByChannel(Hit, Eye, MuzzleLocation, ECC_Visibility, Params);
-	const FVector LightLocation = bBlocked ? Hit.Location - (MuzzleLocation - Eye).GetSafeNormal() * 10.f : MuzzleLocation;
-
-	MuzzleLight->SetWorldLocation(LightLocation);
-	MuzzleLight->SetIntensity(Muzzle.LightIntensity * MuzzleLightAlpha);
 }
 
 void UMEWeaponComponent::Reload()
@@ -429,6 +404,8 @@ void UMEWeaponComponent::Reload()
 	{
 		return;
 	}
+
+	BurstShotsLeft = 0;
 
 	// A round left in the chamber: faster tactical reload, no bolt release
 	const FMEWeaponAnimation& Action = Weapon->GetAmmoInMagazine() > 0 ? Data->Reload : Data->ReloadEmpty;
@@ -457,11 +434,13 @@ void UMEWeaponComponent::FinishReload()
 
 void UMEWeaponComponent::PrintAmmo() const
 {
-	if (bDebugShots && GEngine && Weapon)
+	const UMEWeaponData* Data = GetWeaponData();
+	if (bDebugShots && GEngine && Data)
 	{
+		const FText Mode = StaticEnum<EMEFireMode>()->GetDisplayNameTextByValue(static_cast<int64>(Weapon->GetFireMode()));
 		// Same key every time: the line is replaced instead of stacking
 		GEngine->AddOnScreenDebugMessage(static_cast<uint64>(GetUniqueID()), 5.f, FColor::White,
-			FString::Printf(TEXT("%s  %d / %d"), *Weapon->GetData()->DisplayName.ToString(), Weapon->GetAmmoInMagazine(), GetReserveAmmo()));
+			FString::Printf(TEXT("%s [%s]  %d / %d"), *Data->DisplayName.ToString(), *Mode.ToString(), Weapon->GetAmmoInMagazine(), GetReserveAmmo()));
 	}
 }
 
@@ -533,16 +512,10 @@ void UMEWeaponComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 	Casings.Reset();
 
-	if (MuzzleLight)
-	{
-		MuzzleLight->DestroyComponent();
-		MuzzleLight = nullptr;
-	}
-
 	Super::EndPlay(EndPlayReason);
 }
 
-void UMEWeaponComponent::Equip(UMEWeaponData* WeaponData)
+void UMEWeaponComponent::Equip(TSubclassOf<AMEWeapon> WeaponClass)
 {
 	FActorSpawnParameters Params;
 	Params.Owner = Character;
@@ -550,26 +523,34 @@ void UMEWeaponComponent::Equip(UMEWeaponData* WeaponData)
 
 	// First-person weapon, in the arms
 	Weapon = GetWorld()->SpawnActor<AMEWeapon>(WeaponClass, Params);
-	Weapon->Initialize(WeaponData, true);
+	const UMEWeaponData* Data = Weapon->GetData();
+	if (!Data)
+	{
+		UE_LOG(LogME, Error, TEXT("%s has no weapon Data, cannot be equipped."), *GetNameSafe(WeaponClass));
+		Weapon->Destroy();
+		Weapon = nullptr;
+		return;
+	}
+	Weapon->Initialize(true);
 
 	USkeletalMeshComponent* Arms = Character->GetFirstPersonArms();
-	Weapon->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponData->ArmsGripBone);
-	Weapon->SetActorRelativeTransform(WeaponData->ArmsGripOffset);
+	Weapon->AttachToComponent(Arms, FAttachmentTransformRules::SnapToTargetNotIncludingScale, Data->ArmsGripBone);
+	Weapon->SetActorRelativeTransform(Data->ArmsGripOffset);
 
 	if (UMEFirstPersonAnimInstance* ArmsAnim = Cast<UMEFirstPersonAnimInstance>(Arms->GetAnimInstance()))
 	{
-		ArmsAnim->SetWeaponData(WeaponData);
+		ArmsAnim->SetWeaponData(Data);
 	}
 
 	// World weapon, in the world body's hands: casts the shadow, seen by the AI
 	WorldWeapon = GetWorld()->SpawnActor<AMEWeapon>(WeaponClass, Params);
-	WorldWeapon->Initialize(WeaponData, false);
-	WorldWeapon->AttachToComponent(Character->GetWorldBody(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponData->GripBone);
-	WorldWeapon->SetActorRelativeTransform(WeaponData->GripOffset);
+	WorldWeapon->Initialize(false);
+	WorldWeapon->AttachToComponent(Character->GetWorldBody(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Data->GripBone);
+	WorldWeapon->SetActorRelativeTransform(Data->GripOffset);
 
-	Character->SetBodyWeaponPose(WeaponData->BodyHoldPose);
+	Character->SetBodyWeaponPose(Data->BodyHoldPose);
 
-	BusyUntil = GetWorld()->GetTimeSeconds() + PlayAction(WeaponData->Draw);
+	BusyUntil = GetWorld()->GetTimeSeconds() + PlayAction(Data->Draw);
 	PrintAmmo();
 }
 
@@ -596,7 +577,9 @@ float UMEWeaponComponent::PlayAction(const FMEWeaponAnimation& Action, bool bInt
 		ActionSound = UGameplayStatics::SpawnSoundAttached(Action.Sound, Weapon->GetMesh());
 	}
 
-	const float Length = Action.Arms ? Action.Arms->GetPlayLength() : 0.f;
+	// No arms clip (aiming): the weapon clip sets the length
+	const UAnimSequenceBase* Timing = Action.Arms ? Action.Arms.Get() : Action.Weapon.Get();
+	const float Length = Timing ? Timing->GetPlayLength() : 0.f;
 	bActionInterruptible = bInterruptible;
 	ActionEndTime = GetWorld()->GetTimeSeconds() + Length;
 	return Length;

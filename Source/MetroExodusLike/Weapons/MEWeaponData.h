@@ -2,217 +2,18 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Weapons/MEWeaponTypes.h"
 #include "MEWeaponData.generated.h"
 
 class UAnimSequenceBase;
-class USkeletalMesh;
-class UStaticMesh;
 class USoundBase;
 class UMEItemData;
 class UMECrosshairData;
-class AMEShellCasing;
 class UMEImpactData;
-class UNiagaraSystem;
-
-/** Animation authored for the first-person arms and the matching one for the weapon (same length, played together). */
-USTRUCT(BlueprintType)
-struct FMEWeaponAnimation
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UAnimSequenceBase> Arms;
-
-	/** Optional: bolt, magazine, trigger... */
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UAnimSequenceBase> Weapon;
-
-	/** Optional: sound of the whole action, synced with the animations (reload, draw...). */
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<USoundBase> Sound;
-};
-
-/** View kick and arms kick on each shot. Hip values, scaled down when aiming. */
-USTRUCT(BlueprintType)
-struct FMERecoilSettings
-{
-	GENERATED_BODY()
-
-	/** View climb per shot. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
-	float PitchPerShot = 0.9f;
-
-	/** Random sideways view kick per shot (either side). */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
-	float YawPerShot = 0.4f;
-
-	/** How fast a kick reaches the view (higher = snappier). */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
-	float KickSpeed = 25.f;
-
-	/** Share of the climb the view gives back once the trigger is released (0 = stays up, 1 = back to the start). */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
-	float Recovery = 0.6f;
-
-	/** How fast the view comes back. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
-	float RecoverySpeed = 6.f;
-
-	/** Arms + weapon pushed back toward the shoulder on each shot (spring impulse). */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "cm/s"))
-	float ArmsKickBack = 70.f;
-
-	/** Arms + weapon pushed up on each shot (spring impulse). */
-	UPROPERTY(EditAnywhere, meta = (Units = "cm/s"))
-	float ArmsKickUp = 20.f;
-
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
-	float ArmsKickStiffness = 350.f;
-
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
-	float ArmsKickDamping = 24.f;
-
-	/** Everything above is multiplied by this when aiming. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
-	float AimScale = 0.45f;
-};
-
-/** Bullet spread: a cone around the view, grows with each shot and with movement. */
-USTRUCT(BlueprintType)
-struct FMESpreadSettings
-{
-	GENERATED_BODY()
-
-	/** Cone half-angle standing still, from the hip. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
-	float Hip = 2.f;
-
-	/** Cone half-angle standing still, aiming. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
-	float Aim = 0.15f;
-
-	/** Added per shot (from the hip; aiming uses the recoil aim scale). */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
-	float PerShot = 0.5f;
-
-	/** Added at walking speed. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
-	float Moving = 1.5f;
-
-	/** Added while in the air. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
-	float InAir = 4.f;
-
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
-	float HipMax = 7.f;
-
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
-	float AimMax = 1.5f;
-
-	/** How fast the shot bloom goes away. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "DegreesPerSecond"))
-	float RecoverySpeed = 6.f;
-};
-
-/** Spent casing thrown out of the ejection port on each shot. Location and directions are in the space of Bone. */
-USTRUCT(BlueprintType)
-struct FMEShellEjectSettings
-{
-	GENERATED_BODY()
-
-	/** Casing thrown on each shot. None = no casings. */
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<AMEShellCasing> ShellClass;
-
-	/** Weapon bone the ejection port moves with. None = the weapon mesh origin. */
-	UPROPERTY(EditAnywhere)
-	FName Bone;
-
-	/** Ejection port. */
-	UPROPERTY(EditAnywhere)
-	FVector Location = FVector(-1.5f, 5.5f, 1.7f);
-
-	/** Throw direction (normalized in code). AR-15 mesh: -X is right, +Y forward, +Z up. */
-	UPROPERTY(EditAnywhere)
-	FVector Direction = FVector(-1.f, -0.3f, 0.6f);
-
-	/** Casing length axis when it leaves the port: along the barrel. */
-	UPROPERTY(EditAnywhere)
-	FVector BarrelAxis = FVector(0.f, 1.f, 0.f);
-
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "cm/s"))
-	float Speed = 300.f;
-
-	/** Random share of the speed, either way (0.2 = +/- 20%). */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
-	float SpeedVariation = 0.2f;
-
-	/** Random cone around the direction. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "90", Units = "Degrees"))
-	float DirectionVariation = 12.f;
-
-	/** Tumble, random axis. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "DegreesPerSecond"))
-	float Spin = 1200.f;
-
-	/** Casings kept in the world at once: past this the oldest one is reused. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "1"))
-	int32 MaxCasings = 40;
-};
-
-/** Flash and light at the muzzle on each shot. */
-USTRUCT(BlueprintType)
-struct FMEMuzzleSettings
-{
-	GENERATED_BODY()
-
-	/** Weapon bone at the muzzle. */
-	UPROPERTY(EditAnywhere)
-	FName Bone = TEXT("S_Barrel_end");
-
-	/** Muzzle relative to Bone. */
-	UPROPERTY(EditAnywhere)
-	FVector Offset = FVector::ZeroVector;
-
-	/** Muzzle flash effect, drawn with the first-person weapon. Its X axis is turned along the barrel. */
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UNiagaraSystem> Flash;
-
-	/** Barrel direction in the space of Bone (AR-15: +Y). */
-	UPROPERTY(EditAnywhere)
-	FVector BarrelAxis = FVector(0.f, 1.f, 0.f);
-
-	/** Flash lighting the surroundings: what makes a shot read in a dark tunnel. 0 = no light. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Candela"))
-	float LightIntensity = 40.f;
-
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "cm"))
-	float LightRadius = 800.f;
-
-	UPROPERTY(EditAnywhere)
-	FLinearColor LightColor = FLinearColor(1.f, 0.7f, 0.4f);
-
-	/** Time for the light to go out after a shot. */
-	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.01", Units = "s"))
-	float LightDuration = 0.06f;
-};
-
-/** Separate static part attached to a bone of the weapon (magazine, sights, stock...). */
-USTRUCT(BlueprintType)
-struct FMEWeaponPart
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UStaticMesh> Mesh;
-
-	UPROPERTY(EditAnywhere)
-	FName Bone;
-};
 
 /**
- * Everything that defines a weapon: visuals, animations, sounds and stats.
- * One asset per weapon (DA_Weapon_AR15...), no code needed to add a weapon.
+ * Everything that defines how a weapon behaves: stats, fire modes, handling, animations, sounds.
+ * One asset per weapon (DA_Weapon_AR15...), set on the weapon Blueprint (BP_Weapon_AR15), which holds the visuals.
  */
 UCLASS(BlueprintType)
 class METROEXODUSLIKE_API UMEWeaponData : public UPrimaryDataAsset
@@ -223,13 +24,84 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	FText DisplayName;
 
-	// --- Visuals ---
+	// --- Stats ---
 
-	UPROPERTY(EditDefaultsOnly, Category = "Visuals")
-	TObjectPtr<USkeletalMesh> Mesh;
+	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "0"))
+	float Damage = 30.f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Visuals")
-	TArray<FMEWeaponPart> Parts;
+	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "1", Units = "RPM"))
+	float RoundsPerMinute = 700.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "1"))
+	int32 MagazineSize = 30;
+
+	/** Rounds this weapon takes: the reserve is the player's inventory count of this item. None = unlimited reserve. */
+	UPROPERTY(EditDefaultsOnly, Category = "Stats")
+	TObjectPtr<UMEItemData> AmmoType;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "0", Units = "cm"))
+	float Range = 10000.f;
+
+	// --- Fire modes ---
+
+	/** Modes the selector goes through, in order. The first one is the mode the weapon starts in. One entry = no switch. */
+	UPROPERTY(EditDefaultsOnly, Category = "Fire Modes")
+	TArray<EMEFireMode> FireModes = { EMEFireMode::Auto, EMEFireMode::Single };
+
+	/** Shots per trigger pull in burst mode. */
+	UPROPERTY(EditDefaultsOnly, Category = "Fire Modes", meta = (ClampMin = "2"))
+	int32 BurstCount = 3;
+
+	/** Selector animation + sound when switching TO each mode. */
+	UPROPERTY(EditDefaultsOnly, Category = "Fire Modes")
+	TMap<EMEFireMode, FMEWeaponAnimation> FireModeSwitch;
+
+	// --- Handling ---
+
+	UPROPERTY(EditDefaultsOnly, Category = "Handling")
+	FMERecoilSettings Recoil;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Handling")
+	FMESpreadSettings Spread;
+
+	// --- Aiming ---
+
+	/** View field of view when fully aiming. */
+	UPROPERTY(EditDefaultsOnly, Category = "Aiming", meta = (ClampMin = "10", ClampMax = "170", Units = "Degrees"))
+	float AimFieldOfView = 70.f;
+
+	/** How fast the weapon goes up to the eye / back down. */
+	UPROPERTY(EditDefaultsOnly, Category = "Aiming", meta = (ClampMin = "0"))
+	float AimSpeed = 10.f;
+
+	/** Walk speed multiplier while aiming. */
+	UPROPERTY(EditDefaultsOnly, Category = "Aiming", meta = (ClampMin = "0", ClampMax = "1"))
+	float AimMoveSpeedScale = 0.6f;
+
+	// --- Effects (where they come from: the weapon Blueprint's components) ---
+
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	FMEShellEjectSettings ShellEject;
+
+	/** Time for the muzzle light to go out after a shot. Its color, strength and reach: the Blueprint's MuzzleLight. */
+	UPROPERTY(EditDefaultsOnly, Category = "Effects", meta = (ClampMin = "0.01", Units = "s"))
+	float MuzzleLightDuration = 0.06f;
+
+	/** Bullet holes, dust, sparks and sounds per surface hit. */
+	UPROPERTY(EditDefaultsOnly, Category = "Effects")
+	TObjectPtr<UMEImpactData> Impacts;
+
+	// --- Sounds ---
+
+	/** Played on every shot, at the weapon. */
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	TObjectPtr<USoundBase> FireSound;
+
+	// --- UI ---
+
+	/** Hip-fire crosshair for this weapon only. None = the player's default crosshair. */
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TObjectPtr<UMECrosshairData> Crosshair;
 
 	// --- First-person arms ---
 
@@ -240,8 +112,6 @@ public:
 	/** Weapon placement relative to ArmsGripBone (identity when the animations come with the weapon). */
 	UPROPERTY(EditDefaultsOnly, Category = "First Person")
 	FTransform ArmsGripOffset;
-
-	// --- Close to a wall: the weapon is pulled aside instead of going through ---
 
 	/** Arms pose with the weapon pulled back (wall getting close). */
 	UPROPERTY(EditDefaultsOnly, Category = "First Person|Wall")
@@ -333,71 +203,4 @@ public:
 	/** Weapon pose with an empty magazine (bolt locked back). */
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Weapon Poses")
 	TObjectPtr<UAnimSequenceBase> WeaponEmptyPose;
-
-	// --- Sounds ---
-
-	/** Played on every shot, at the weapon. */
-	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
-	TObjectPtr<USoundBase> FireSound;
-
-	// --- Effects ---
-
-	UPROPERTY(EditDefaultsOnly, Category = "Effects")
-	FMEShellEjectSettings ShellEject;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Effects")
-	FMEMuzzleSettings Muzzle;
-
-	/** Bullet holes, dust, sparks and sounds per surface hit. */
-	UPROPERTY(EditDefaultsOnly, Category = "Effects")
-	TObjectPtr<UMEImpactData> Impacts;
-
-	// --- UI ---
-
-	/** Hip-fire crosshair for this weapon only. None = the player's default crosshair. */
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TObjectPtr<UMECrosshairData> Crosshair;
-
-	// --- Aiming ---
-
-	/** View field of view when fully aiming. */
-	UPROPERTY(EditDefaultsOnly, Category = "Aiming", meta = (ClampMin = "10", ClampMax = "170", Units = "Degrees"))
-	float AimFieldOfView = 70.f;
-
-	/** How fast the weapon goes up to the eye / back down. */
-	UPROPERTY(EditDefaultsOnly, Category = "Aiming", meta = (ClampMin = "0"))
-	float AimSpeed = 10.f;
-
-	/** Walk speed multiplier while aiming. */
-	UPROPERTY(EditDefaultsOnly, Category = "Aiming", meta = (ClampMin = "0", ClampMax = "1"))
-	float AimMoveSpeedScale = 0.6f;
-
-	// --- Handling ---
-
-	UPROPERTY(EditDefaultsOnly, Category = "Handling")
-	FMERecoilSettings Recoil;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Handling")
-	FMESpreadSettings Spread;
-
-	// --- Stats ---
-
-	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "0"))
-	float Damage = 30.f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "1", Units = "RPM"))
-	float RoundsPerMinute = 700.f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Stats")
-	bool bFullAuto = true;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "1"))
-	int32 MagazineSize = 30;
-
-	/** Rounds this weapon takes: the reserve is the player's inventory count of this item. None = unlimited reserve. */
-	UPROPERTY(EditDefaultsOnly, Category = "Stats")
-	TObjectPtr<UMEItemData> AmmoType;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "0", Units = "cm"))
-	float Range = 10000.f;
 };

@@ -201,10 +201,10 @@ void UMEFirstPersonCameraComponent::UpdateStrafeTilt(float DeltaTime, FRotator& 
 void UMEFirstPersonCameraComponent::UpdateAiming()
 {
 	const UMEWeaponComponent* Weapons = Character->GetWeapons();
-	const UMEWeaponData* Data = Weapons->GetWeaponData();
+	const UMEWeaponData* WeaponData = Weapons->GetWeaponData();
 	const float AimAlpha = Weapons->GetAimAlpha();
 
-	SetFieldOfView(FMath::Lerp(HipFieldOfView, Data ? Data->AimFieldOfView : HipFieldOfView, AimAlpha));
+	SetFieldOfView(FMath::Lerp(HipFieldOfView, WeaponData ? WeaponData->AimFieldOfView : HipFieldOfView, AimAlpha));
 
 	// Aiming: the breath is held so the sights stay still
 	SetHoldingBreath(AimAlpha > 0.5f);

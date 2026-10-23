@@ -8,7 +8,6 @@ class AMECharacter;
 class UAudioComponent;
 class AMEWeapon;
 class AMEShellCasing;
-class UPointLightComponent;
 class UMEWeaponData;
 struct FMEWeaponAnimation;
 
@@ -18,7 +17,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FMETargetHitSignature, bool /*bKilled*/);
 /**
  * The player's weapon handling: spawns the weapon in the first-person arms,
  * and a copy in the world body's hands (shadow, AI).
- * Fires hitscan shots from the view (semi / full auto, dry fire) inside a spread cone, kicks the view
+ * Fires hitscan shots from the view (single / burst / auto, dry fire) inside a spread cone, kicks the view
  * and the arms on each shot, aims down sights, reloads (tactical / empty), pulls the weapon aside near walls.
  * Each shot also throws a casing, flashes the muzzle and leaves an impact on the surface hit.
  */
@@ -32,15 +31,21 @@ public:
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+	/** The weapon in hand (first-person copy): its ammo and fire mode. Null when unarmed. */
 	AMEWeapon* GetWeapon() const { return Weapon; }
+
+	/** How the weapon in hand behaves (stats, animations...). Null when unarmed. */
 	UMEWeaponData* GetWeaponData() const;
 
 	/** 0 = free, 1 = against a wall: how much the weapon is pulled aside. Smoothed. */
 	float GetWallBlockAmount() const { return WallBlockAmount; }
 
-	/** Trigger pressed / released. Full auto keeps firing while held. */
+	/** Trigger pressed / released. Auto keeps firing while held, a burst finishes on its own. */
 	void StartFire();
 	void StopFire();
+
+	/** Next fire mode of the weapon (selector animation). */
+	void SwitchFireMode();
 
 	/** Tactical reload if a round is chambered, empty reload otherwise. */
 	void Reload();
@@ -73,13 +78,9 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	/** Weapon the player starts with. */
+	/** Weapon the player starts with (BP_Weapon_AR15...). */
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
-	TObjectPtr<UMEWeaponData> StartingWeapon;
-
-	/** Actor class spawned for the weapon (a Blueprint child can add effects). */
-	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
-	TSubclassOf<AMEWeapon> WeaponClass;
+	TSubclassOf<AMEWeapon> StartingWeapon;
 
 	/** Thickness of the wall check: catches edges the weapon would clip into. */
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Wall", meta = (ClampMin = "0", Units = "cm"))
@@ -102,7 +103,7 @@ protected:
 	bool bDebugShots = true;
 
 private:
-	void Equip(UMEWeaponData* WeaponData);
+	void Equip(TSubclassOf<AMEWeapon> WeaponClass);
 	/**
 	 * Plays the arms + weapon animations and the sound. Returns the arms animation length.
 	 * Interruptible actions (fire, inspect) give way when the stance changes (aim in / out, sprint).
@@ -120,9 +121,6 @@ private:
 	void FireShot();
 	/** Throws a casing out of the ejection port, where it is seen on screen. */
 	void EjectShell();
-	/** Muzzle flash on the first-person weapon + light flash where the muzzle is seen. */
-	void PlayMuzzleFlash();
-	void UpdateMuzzleLight(float DeltaTime);
 	void FinishReload();
 	void PrintAmmo() const;
 
@@ -143,6 +141,8 @@ private:
 	bool bWantsToFire = false;
 	bool bFiredThisPress = false;
 	double LastShotTime = -1.0;
+	/** Burst shots still to fire, trigger held or not. */
+	int32 BurstShotsLeft = 0;
 
 	// Aiming
 	bool bWantsToAim = false;
@@ -165,11 +165,6 @@ private:
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<AMEShellCasing>> Casings;
 	int32 NextCasing = 0;
-
-	/** Lights the surroundings for a moment on each shot. */
-	UPROPERTY(Transient)
-	TObjectPtr<UPointLightComponent> MuzzleLight;
-	float MuzzleLightAlpha = 0.f;
 
 	/** Until this time the weapon is drawing / reloading. */
 	double BusyUntil = 0.0;

@@ -332,6 +332,10 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(InputConfig->AimAction, ETriggerEvent::Started, this, &AMECharacter::AimPressed);
 	Input->BindAction(InputConfig->AimAction, ETriggerEvent::Completed, this, &AMECharacter::AimReleased);
 	Input->BindAction(InputConfig->InspectAction, ETriggerEvent::Started, this, &AMECharacter::InspectPressed);
+	if (InputConfig->SwitchFireModeAction)
+	{
+		Input->BindAction(InputConfig->SwitchFireModeAction, ETriggerEvent::Started, this, &AMECharacter::SwitchFireModePressed);
+	}
 }
 
 bool AMECharacter::CanInteract() const
@@ -379,6 +383,11 @@ void AMECharacter::InspectPressed()
 void AMECharacter::ReloadPressed()
 {
 	Weapons->Reload();
+}
+
+void AMECharacter::SwitchFireModePressed()
+{
+	Weapons->SwitchFireMode();
 }
 
 void AMECharacter::InteractReleased()

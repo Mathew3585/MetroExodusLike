@@ -184,6 +184,7 @@ private:
 	void AimPressed();
 	void AimReleased();
 	void InspectPressed();
+	void SwitchFireModePressed();
 	void UpdateMaxWalkSpeed();
 	void UpdateBodyRotation(float DeltaSeconds);
 	void UpdateLandingRecovery(float DeltaSeconds);

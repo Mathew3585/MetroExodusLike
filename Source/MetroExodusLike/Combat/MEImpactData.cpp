@@ -23,12 +23,13 @@ void UMEImpactData::SpawnImpact(const UObject* WorldContext, const FHitResult& H
 		Rotation.Roll = FMath::FRandRange(-180.f, 180.f);
 		const float Size = Impact.DecalSize * (1.f + FMath::FRandRange(-Impact.DecalSizeVariation, Impact.DecalSizeVariation));
 
-		// Attached: stays on moving things (falling targets, doors)
+		// Attached: stays on moving things (falling targets, doors). Its own lifespan removes it after the fade:
+		// the hit actor owns it, so the fade must not destroy the owner
 		if (UDecalComponent* Decal = UGameplayStatics::SpawnDecalAttached(Impact.Decal, FVector(Size), Hit.GetComponent(), NAME_None,
-			Hit.ImpactPoint, Rotation, EAttachLocation::KeepWorldPosition, 0.f))
+			Hit.ImpactPoint, Rotation, EAttachLocation::KeepWorldPosition, DecalLifetime + DecalFadeTime))
 		{
 			Decal->SetFadeScreenSize(DecalFadeScreenSize);
-			Decal->SetFadeOut(DecalLifetime, DecalFadeTime, true);
+			Decal->SetFadeOut(DecalLifetime, DecalFadeTime, false);
 		}
 	}
 
