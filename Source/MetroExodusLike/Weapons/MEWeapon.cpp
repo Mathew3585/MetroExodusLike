@@ -58,8 +58,8 @@ void AMEWeapon::Initialize(bool bFirstPerson)
 		}
 		else
 		{
-			Visual->SetHiddenInGame(true);
-			Visual->bCastHiddenShadow = Visual != MuzzleFlash;
+			// Hidden from the owner, its shadow falls on the world but never on the first-person meshes
+			Visual->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::WorldSpaceRepresentation);
 		}
 	}
 

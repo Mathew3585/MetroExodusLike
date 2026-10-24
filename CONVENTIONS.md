@@ -71,7 +71,7 @@ Packs achetés ou importés : un dossier par pack dans `/Game/External/` (`AR15_
 
 Exceptions laissées à la racine : `MetaHumans/` (les outils MetaHuman exigent `/Game/MetaHumans/Common`), et les dossiers du moteur (`__ExternalActors__`, `__ExternalObjects__`, `Collections`, `Developers`).
 
-Déplacer des assets : **toujours dans l'éditeur** (jamais dans l'explorateur), puis clic droit sur le dossier → *Update Redirector References*, et mettre à jour les chemins écrits en dur dans `Config/*.ini`.
+Déplacer des assets : **toujours dans l'éditeur** (jamais dans l'explorateur), puis clic droit sur le dossier → *Update Redirector References*, et mettre à jour les chemins écrits en dur dans `Config/*.ini`. Pour un dossier entier, ajouter aussi une règle dans `[CoreRedirects]` de `DefaultEngine.ini` (ancien dossier → nouveau) : certaines références enregistrées ne passent pas par les redirectors (vécu lors du rangement d'octobre 2026). On garde ces règles.
 
 `Source/MetroExodusLikeEditor/` : outils **éditeur uniquement** (jamais dans le jeu livré), par exemple la construction de WBP par script.
 

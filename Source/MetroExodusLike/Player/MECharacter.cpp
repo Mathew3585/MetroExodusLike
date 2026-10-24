@@ -39,10 +39,10 @@ AMECharacter::AMECharacter()
 
 	ShadowMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ShadowMesh"));
 	ShadowMesh->SetupAttachment(Body);
-	ShadowMesh->SetHiddenInGame(true);
-	ShadowMesh->bCastHiddenShadow = true;
+	// Hidden from the owner, its shadow falls on the world but never on the first-person meshes
+	ShadowMesh->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::WorldSpaceRepresentation);
 	ShadowMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	// Hidden meshes skip bone updates by default: the shadow would freeze
+	// Meshes the view does not render skip bone updates by default: the shadow would freeze
 	ShadowMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 
 	// Head pivot: the camera component moves it with the view every frame (placement, bob, breathing, impacts...)
@@ -105,8 +105,7 @@ void AMECharacter::BeginPlay()
 	}
 	for (USkeletalMeshComponent* Part : AddMeshParts(ShadowMesh, WorldBodyParts))
 	{
-		Part->SetHiddenInGame(true);
-		Part->bCastHiddenShadow = true;
+		Part->SetFirstPersonPrimitiveType(EFirstPersonPrimitiveType::WorldSpaceRepresentation);
 	}
 
 	PlaceArmsOnPivot();
