@@ -7,6 +7,11 @@
 #include "Weapons/MEWeaponComponent.h"
 #include "Weapons/MEWeaponData.h"
 #include "Inventory/MEInventoryComponent.h"
+#include "Combat/MEHealthComponent.h"
+#include "Player/MEDamageFeedbackComponent.h"
+#include "Core/MEGameMode.h"
+#include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 #include "AnimationRuntime.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -69,6 +74,8 @@ AMECharacter::AMECharacter()
 	Interaction = CreateDefaultSubobject<UMEInteractionComponent>(TEXT("Interaction"));
 	Weapons = CreateDefaultSubobject<UMEWeaponComponent>(TEXT("Weapons"));
 	Inventory = CreateDefaultSubobject<UMEInventoryComponent>(TEXT("Inventory"));
+	Health = CreateDefaultSubobject<UMEHealthComponent>(TEXT("Health"));
+	DamageFeedback = CreateDefaultSubobject<UMEDamageFeedbackComponent>(TEXT("DamageFeedback"));
 
 	// Heavy, grounded movement: slow acceleration, little air control
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
@@ -113,6 +120,41 @@ void AMECharacter::BeginPlay()
 
 	// Picks up the value edited in the Blueprint
 	GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed;
+
+	Health->OnDeath.AddUObject(this, &AMECharacter::HandleDeath);
+}
+
+void AMECharacter::HandleDeath(AController* Killer)
+{
+	// No more control: the weapon drops out of view, the camera falls (fall and fade: camera + damage feedback)
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PC);
+	}
+	MoveInput = FVector2D::ZeroVector;
+	bWantsToSprint = false;
+	Weapons->StopFire();
+	Weapons->SetWantsToAim(false);
+	Interaction->SetComponentTickEnabled(false);
+	GetCharacterMovement()->StopMovementImmediately();
+	if (bIsCrouched)
+	{
+		UnCrouch();
+	}
+
+	FirstPersonArms->SetVisibility(false, true);
+	GetMesh()->SetVisibility(false, true);
+	FirstPersonCamera->PlayDeath();
+
+	GetWorldTimerManager().SetTimer(RespawnTimer, this, &AMECharacter::Respawn, FMath::Max(RespawnDelay, 0.01f));
+}
+
+void AMECharacter::Respawn()
+{
+	if (AMEGameMode* GameMode = GetWorld()->GetAuthGameMode<AMEGameMode>())
+	{
+		GameMode->RespawnPlayer(GetController());
+	}
 }
 
 void AMECharacter::Tick(float DeltaSeconds)
@@ -135,6 +177,16 @@ void AMECharacter::Landed(const FHitResult& Hit)
 
 	const float ImpactSpeed = FMath::Max(FallSpeed, -GetCharacterMovement()->Velocity.Z);
 	FallSpeed = 0.f;
+
+	if (ImpactSpeed >= FallDamageSpeed && FallDamageMaxSpeed > FallDamageSpeed)
+	{
+		const float Damage = FMath::GetMappedRangeValueClamped(FVector2f(FallDamageSpeed, FallDamageMaxSpeed), FVector2f(0.f, FallDamageMax), ImpactSpeed);
+		UGameplayStatics::ApplyDamage(this, Damage, GetController(), this, nullptr);
+		if (Health->IsDead())
+		{
+			return;
+		}
+	}
 
 	if (ImpactSpeed < LightLandingSpeed)
 	{

@@ -76,7 +76,8 @@ void UMEFirstPersonCameraComponent::TickComponent(float DeltaTime, ELevelTick Ti
 		return;
 	}
 
-	const FVector PivotLocation = UpdatePlacement(DeltaTime);
+	FVector PivotLocation = UpdatePlacement(DeltaTime);
+	const float Death = UpdateDeath(DeltaTime, PivotLocation);
 	UpdateAiming();
 
 	FVector OffsetLocation = FVector::ZeroVector;
@@ -87,8 +88,15 @@ void UMEFirstPersonCameraComponent::TickComponent(float DeltaTime, ELevelTick Ti
 	UpdateStrafeTilt(DeltaTime, OffsetRotation);
 	UpdateHeavyLanding(DeltaTime, OffsetRotation);
 
-	// Arms and camera follow: the view turns around the head, the procedural motion is in view space
-	const FTransform View(Character->GetControlRotation(), PivotLocation);
+	// Arms and camera follow: the view turns around the head, the procedural motion is in view space.
+	// Dead, the input is off: the view goes from where it looked to lying on the ground
+	FRotator ViewRotation = Character->GetControlRotation();
+	if (Death > 0.f)
+	{
+		const FRotator Lying(DeathPitch, DeathStartRotation.Yaw, DeathRoll);
+		ViewRotation = FQuat::Slerp(DeathStartRotation.Quaternion(), Lying.Quaternion(), Death).Rotator();
+	}
+	const FTransform View(ViewRotation, PivotLocation);
 	ViewPivot->SetWorldTransform(FTransform(OffsetRotation, OffsetLocation) * View);
 }
 
@@ -249,6 +257,28 @@ FVector UMEFirstPersonCameraComponent::GetFirstPersonVisualLocation(const FVecto
 	// The first-person scale shrinks primitives toward the eye
 	const FVector Eye = GetComponentLocation();
 	return Eye + (Location - Eye) * GetFirstPersonVisualScale();
+}
+
+void UMEFirstPersonCameraComponent::PlayDeath()
+{
+	DeathElapsed = 0.f;
+	DeathStartRotation = Character ? Character->GetControlRotation() : GetComponentRotation();
+	HeavyLandingDuration = 0.f;
+}
+
+float UMEFirstPersonCameraComponent::UpdateDeath(float DeltaTime, FVector& InOutPivotLocation)
+{
+	if (DeathElapsed < 0.f)
+	{
+		return 0.f;
+	}
+	DeathElapsed += DeltaTime;
+
+	// Knees give way first, then the body drops: accelerating fall
+	const float Fall = FMath::Square(FMath::Clamp(DeathElapsed / DeathFallTime, 0.f, 1.f));
+	const float Ground = Character->GetMesh()->GetComponentLocation().Z + DeathEyeHeight;
+	InOutPivotLocation.Z = FMath::Lerp(InOutPivotLocation.Z, FMath::Min(Ground, InOutPivotLocation.Z), Fall);
+	return Fall;
 }
 
 void UMEFirstPersonCameraComponent::UpdateHeavyLanding(float DeltaTime, FRotator& OutRotation)

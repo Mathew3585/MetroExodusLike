@@ -6,6 +6,7 @@
 
 class UMEInteractionComponent;
 class UMEWeaponComponent;
+class UMEHealthComponent;
 class UMEInteractionPromptWidget;
 class UMECrosshairWidget;
 class UMECrosshairData;
@@ -18,6 +19,21 @@ UCLASS()
 class METROEXODUSLIKE_API AMEPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
+public:
+	// Console commands for testing (PIE: ` then the command)
+
+	/** MEDamage 25: hurts the player. */
+	UFUNCTION(Exec)
+	void MEDamage(float Amount);
+
+	/** MEKill: kills the player. */
+	UFUNCTION(Exec)
+	void MEKill();
+
+	/** MEHeal 50: gives health back. */
+	UFUNCTION(Exec)
+	void MEHeal(float Amount);
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
@@ -39,6 +55,7 @@ private:
 	void HandleInteractionFocusChanged(bool bHasFocus, const FMEInteractionInfo& Info);
 	void HandleInteractionProgress(float Progress);
 	void HandleTargetHit(bool bKilled);
+	void HandlePlayerDeath(AController* Killer);
 
 	/** Display name of the key bound to Interact ("E"), so the prompt follows rebinding. */
 	FText GetInteractKeyText() const;
@@ -51,4 +68,5 @@ private:
 
 	TWeakObjectPtr<UMEInteractionComponent> BoundInteraction;
 	TWeakObjectPtr<UMEWeaponComponent> BoundWeapons;
+	TWeakObjectPtr<UMEHealthComponent> BoundHealth;
 };

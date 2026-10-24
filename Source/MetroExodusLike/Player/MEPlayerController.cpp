@@ -4,6 +4,8 @@
 #include "Input/MEInputConfig.h"
 #include "Interaction/MEInteractionComponent.h"
 #include "Weapons/MEWeaponComponent.h"
+#include "Combat/MEHealthComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/MEInteractionPromptWidget.h"
 #include "UI/MECrosshairWidget.h"
 #include "EnhancedInputSubsystems.h"
@@ -53,6 +55,16 @@ void AMEPlayerController::OnPossess(APawn* InPawn)
 		UMEWeaponComponent* Weapons = MECharacter->GetWeapons();
 		Weapons->OnTargetHit.AddUObject(this, &AMEPlayerController::HandleTargetHit);
 		BoundWeapons = Weapons;
+
+		UMEHealthComponent* Health = MECharacter->GetHealth();
+		Health->OnDeath.AddUObject(this, &AMEPlayerController::HandlePlayerDeath);
+		BoundHealth = Health;
+	}
+
+	// Back from a death
+	if (Crosshair)
+	{
+		Crosshair->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
 
@@ -70,6 +82,12 @@ void AMEPlayerController::OnUnPossess()
 		Weapons->OnTargetHit.RemoveAll(this);
 	}
 	BoundWeapons.Reset();
+
+	if (UMEHealthComponent* Health = BoundHealth.Get())
+	{
+		Health->OnDeath.RemoveAll(this);
+	}
+	BoundHealth.Reset();
 
 	if (InteractionPrompt)
 	{
@@ -101,6 +119,42 @@ void AMEPlayerController::HandleTargetHit(bool bKilled)
 	if (Crosshair)
 	{
 		Crosshair->ShowHitMarker(bKilled);
+	}
+}
+
+void AMEPlayerController::HandlePlayerDeath(AController* Killer)
+{
+	if (Crosshair)
+	{
+		Crosshair->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (InteractionPrompt)
+	{
+		InteractionPrompt->HidePrompt();
+	}
+}
+
+void AMEPlayerController::MEDamage(float Amount)
+{
+	if (APawn* MyPawn = GetPawn())
+	{
+		UGameplayStatics::ApplyDamage(MyPawn, Amount, this, MyPawn, nullptr);
+	}
+}
+
+void AMEPlayerController::MEKill()
+{
+	if (const AMECharacter* MECharacter = Cast<AMECharacter>(GetPawn()))
+	{
+		MEDamage(MECharacter->GetHealth()->GetHealth());
+	}
+}
+
+void AMEPlayerController::MEHeal(float Amount)
+{
+	if (const AMECharacter* MECharacter = Cast<AMECharacter>(GetPawn()))
+	{
+		MECharacter->GetHealth()->Heal(Amount);
 	}
 }
 

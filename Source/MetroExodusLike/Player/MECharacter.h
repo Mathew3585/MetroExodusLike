@@ -9,6 +9,9 @@ class UMEInputConfig;
 class UMEInteractionComponent;
 class UMEWeaponComponent;
 class UMEInventoryComponent;
+class UMEHealthComponent;
+class UMEDamageFeedbackComponent;
+class AController;
 class UMEAnimInstance;
 class UAnimSequenceBase;
 struct FInputActionValue;
@@ -33,6 +36,7 @@ public:
 	UMEInteractionComponent* GetInteraction() const { return Interaction; }
 	UMEWeaponComponent* GetWeapons() const { return Weapons; }
 	UMEInventoryComponent* GetInventory() const { return Inventory; }
+	UMEHealthComponent* GetHealth() const { return Health; }
 	USkeletalMeshComponent* GetFirstPersonArms() const { return FirstPersonArms; }
 	USkeletalMeshComponent* GetWorldBody() const { return ShadowMesh; }
 	const UMEInputConfig* GetInputConfig() const { return InputConfig; }
@@ -80,6 +84,13 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEInventoryComponent> Inventory;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEHealthComponent> Health;
+
+	/** Hits, low health and death on screen and in the sound (no health bar). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEDamageFeedbackComponent> DamageFeedback;
 
 	/**
 	 * Extra meshes of the visible body (clothing...), following its pose.
@@ -167,6 +178,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "s"))
 	float HeavyLandingRecoveryTime = 0.6f;
 
+	/** Landings faster than this hurt. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "cm/s"))
+	float FallDamageSpeed = 900.f;
+
+	/** Landing at this speed (and faster) deals FallDamageMax. */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "cm/s"))
+	float FallDamageMaxSpeed = 1500.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0"))
+	float FallDamageMax = 100.f;
+
+	// --- Death ---
+
+	/** Time from death to coming back at the start (later: the last checkpoint). */
+	UPROPERTY(EditDefaultsOnly, Category = "Death", meta = (ClampMin = "0", Units = "s"))
+	float RespawnDelay = 4.f;
+
 private:
 	void Move(const FInputActionValue& Value);
 	void StopMoving();
@@ -190,6 +218,8 @@ private:
 	void UpdateLandingRecovery(float DeltaSeconds);
 	void PlaceArmsOnPivot();
 	void ForEachBodyAnimInstance(TFunctionRef<void(UMEAnimInstance&)> Function) const;
+	void HandleDeath(AController* Killer);
+	void Respawn();
 
 	/** Spawns a component per mesh, attached to the leader and copying its pose. */
 	TArray<USkeletalMeshComponent*> AddMeshParts(USkeletalMeshComponent* Leader, const TArray<TObjectPtr<USkeletalMesh>>& Meshes);
@@ -205,4 +235,6 @@ private:
 	float LandingRecoveryDuration = 0.f;
 	float LandingRecoveryStartScale = 1.f;
 	float LandingSpeedScale = 1.f;
+
+	FTimerHandle RespawnTimer;
 };

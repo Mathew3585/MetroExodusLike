@@ -14,4 +14,7 @@ class METROEXODUSLIKE_API AMEGameMode : public AGameModeBase
 
 public:
 	AMEGameMode();
+
+	/** The player's body is removed and a new one starts at a player start (later: the last checkpoint). */
+	void RespawnPlayer(AController* Controller);
 };

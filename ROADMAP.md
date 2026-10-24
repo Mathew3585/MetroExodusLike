@@ -62,13 +62,13 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [x] 3.4d Réticule dynamique par DataAsset (`UMECrosshairData`, images du pack CrosshairFreePack) : s'écarte avec la dispersion, disparaît en visée ; défaut sur le controller, surcharge possible par arme
 - [x] 3.4e Weapon sway (inertie de l'arme, par DataAsset) : retard sur la vue, mouvement / strafe, saut et réception, respiration idle ; bras + arme bougent d'un bloc autour de la poignée (nœud `ME Arms Offset`, aussi pour le recul), caméra immobile ; réduit en visée
 - [x] 3.5 Cibles avec santé (`UMEHealthComponent`, réutilisable partout) + hit marker discret (images `T_HM_*`)
-- [ ] 3.6 Impacts : decals, particules, sons
+- [~] 3.6 Impacts : decals + particules par surface faits (Niagara Examples Pack, gratuit) ; **reste les sons et le sang** → voir *Assets à trouver*
 
 **Fini quand :** tirer sur des cibles est satisfaisant.
 💰 **Achat d'assets :** pack bras FPS + animations d'armes (l'achat le plus important du projet).
 
 ## Phase 4 — Survie
-- [ ] 4.1 Santé joueur, dégâts, mort / respawn
+- [x] 4.1 Santé joueur (`UMEHealthComponent`), dégâts de chute, ressenti sans HUD (`UMEDamageFeedbackComponent` : flash + sursaut de vue au coup, vignette qui bat avec le cœur et couleurs délavées sous 50 %, grognements / cri de mort aléatoires), mort (vue qui s'écroule, fondu au noir) puis respawn ; commandes `MEDamage` / `MEHeal` / `MEKill`
 - [ ] 4.2 Medkit (raccourci, animation)
 - [ ] 4.3 Zones toxiques (volumes)
 - [ ] 4.4 Masque à gaz : mettre / retirer, filtres avec chrono, essoufflement
@@ -119,6 +119,22 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [ ] 9.6 Playtests + corrections
 
 **Fini quand :** quelqu'un qui n'a jamais vu le projet le termine et en redemande.
+
+---
+
+## Assets à trouver
+Liste tenue à jour à chaque étape : ce qui manque pour finir une mécanique déjà codée (le code attend juste l'asset).
+On cherche d'abord du gratuit / pas cher (Fab, Epic, Freesound), licence vérifiée **avant** l'achat.
+
+| Besoin | Pour | Où le brancher | Statut |
+|---|---|---|---|
+| Sons d'impact de balle : béton, métal, bois, chair | 3.6 | `DA_Impacts_Bullet` → Sound par surface | à trouver |
+| Effet de sang (particules + decal) | 3.6 | `DA_Impacts_Bullet` → surface `PM_Flesh` | à trouver |
+| Sons de douilles qui tombent au sol | 3.4c | `BP_ShellCasing_556` → son d'impact | à trouver |
+| Son de douleur du joueur (grognement, plusieurs variantes) | 4.1 | `BP_MECharacter` → DamageFeedback → Hurt Sound | branché : `SC_Player_Hurt` (HumanVocalizations, voix Male A) |
+| Battement de cœur **en boucle** | 4.1 | `BP_MECharacter` → DamageFeedback → Heartbeat Sound | à trouver |
+| Son de mort du joueur | 4.1 | `BP_MECharacter` → DamageFeedback → Death Sound | branché : `SC_Player_Death` (HumanVocalizations, voix Male A) |
+| Toux, respiration sous masque (marche / course) | 4.4 | masque à gaz | déjà dans le projet : `External/HumanVocalizations/HumanMaleA` |
 
 ---
 

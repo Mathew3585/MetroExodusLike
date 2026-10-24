@@ -51,6 +51,7 @@ Exceptions imposées par Unreal : le graphe d'animation (AnimBP) et la mise en p
 | `IA_` / `IMC_` | Input Action / Mapping Context | `IA_Interact`, `IMC_Default` |
 | `IK_` / `RTG_` | IK Rig / Retargeter | `RTG_UEFN_to_Quantum` |
 | `L_` | Niveau | `L_Test` |
+| `SC_` | Sound Cue (les nôtres, souvent un *Random* sur des sons de pack) | `SC_Player_Hurt` |
 | `SM_` / `SKM_` / `M_` / `MI_` / `T_` | Static mesh / Skeletal mesh / Material / Instance / Texture | |
 
 ## 4. Où ranger
@@ -66,8 +67,9 @@ Exceptions imposées par Unreal : le graphe d'animation (AnimBP) et la mise en p
 | Interface | `UI/` | `UI/` |
 | Armes, IA, survie, inventaire… | un dossier par domaine, créé quand on en a besoin | idem |
 | Niveaux | | `Maps/` |
+| Sons (nos cues, ambiances, musique) | | `Audio/Player/`, `Audio/Ambiance/`, `Audio/Music/` |
 
-Packs achetés ou importés : un dossier par pack dans `/Game/External/` (`AR15_FPS_Animation_Pack/`, `QuantumCharacter/`, `UEFN_Mannequin/` = sources GASP, `Survival_Outfit/`, `FootstepsMiniPack/`…). On ne mélange pas nos assets avec ceux des packs : un asset de pack qu'on modifie ou adapte (retarget, copie) est copié chez nous. Si un pack s'importe ailleurs (dossier racine imposé), on le déplace dans `External/` **depuis l'éditeur**.
+Packs achetés ou importés : un dossier par pack dans `/Game/External/` (`AR15_FPS_Animation_Pack/`, `QuantumCharacter/`, `UEFN_Mannequin/` = sources GASP, `Survival_Outfit/`, `FootstepsMiniPack/`, `HumanVocalizations/`…). On ne mélange pas nos assets avec ceux des packs : un asset de pack qu'on modifie ou adapte (retarget, copie) est copié chez nous. Si un pack s'importe ailleurs (dossier racine imposé), on le déplace dans `External/` **depuis l'éditeur**.
 
 Exceptions laissées à la racine : `MetaHumans/` (les outils MetaHuman exigent `/Game/MetaHumans/Common`), et les dossiers du moteur (`__ExternalActors__`, `__ExternalObjects__`, `Collections`, `Developers`).
 

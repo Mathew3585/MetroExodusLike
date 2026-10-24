@@ -108,6 +108,7 @@ struct FMEImpactSettings
  *  3. Breathing: rested to exhausted, can be held
  *  4. Impacts: spring on jump and landing
  *  5. Strafe tilt: slight roll when moving sideways
+ *  6. Death: the view falls to the ground (replaces the view rotation)
  * Layers 2-5 are an offset in view space: arms and view move together, the weapon stays in frame.
  */
 UCLASS(ClassGroup = (Camera), meta = (BlueprintSpawnableComponent))
@@ -137,6 +138,9 @@ public:
 
 	/** Heavy landing: the view drops to the ground, then comes back up over Duration. */
 	void PlayHeavyLanding(float Duration);
+
+	/** Death: the view falls to the ground and tips over. */
+	void PlayDeath();
 
 	/** Size first-person primitives are drawn at (scaled toward the eye so they don't clip into walls). */
 	float GetFirstPersonVisualScale() const { return bEnableFirstPersonScale ? FirstPersonScale : 1.f; }
@@ -219,6 +223,24 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Camera|Impacts", meta = (ClampMin = "0.01", Units = "s"))
 	float HeavyLandingDropTime = 0.15f;
 
+	// --- Death ---
+
+	/** Eye height above the feet once fallen. */
+	UPROPERTY(EditAnywhere, Category = "Camera|Death", meta = (ClampMin = "0", Units = "cm"))
+	float DeathEyeHeight = 20.f;
+
+	/** Time to hit the ground. */
+	UPROPERTY(EditAnywhere, Category = "Camera|Death", meta = (ClampMin = "0.01", Units = "s"))
+	float DeathFallTime = 0.7f;
+
+	/** Head tipped on the side once fallen. */
+	UPROPERTY(EditAnywhere, Category = "Camera|Death", meta = (Units = "Degrees"))
+	float DeathRoll = 75.f;
+
+	/** View pitch once fallen (looking along the ground). */
+	UPROPERTY(EditAnywhere, Category = "Camera|Death", meta = (ClampMin = "-89", ClampMax = "89", Units = "Degrees"))
+	float DeathPitch = -5.f;
+
 	// --- Aiming ---
 
 	/** Head bob strength while fully aiming (the weapon must stay on target). */
@@ -242,6 +264,8 @@ private:
 	void UpdateImpacts(float DeltaTime, FVector& OutLocation, FRotator& OutRotation);
 	void UpdateStrafeTilt(float DeltaTime, FRotator& OutRotation);
 	void UpdateHeavyLanding(float DeltaTime, FRotator& OutRotation);
+	/** Pulls the view to the ground; returns the fall (0..1). */
+	float UpdateDeath(float DeltaTime, FVector& InOutPivotLocation);
 	void UpdateAiming();
 
 	UPROPERTY(Transient)
@@ -282,4 +306,8 @@ private:
 	// Heavy landing look-down
 	float HeavyLandingElapsed = 0.f;
 	float HeavyLandingDuration = 0.f;
+
+	// Death fall: < 0 while alive
+	float DeathElapsed = -1.f;
+	FRotator DeathStartRotation = FRotator::ZeroRotator;
 };
