@@ -11,6 +11,7 @@
 #include "Player/MEDamageFeedbackComponent.h"
 #include "Survival/MEMedkitComponent.h"
 #include "Survival/METoxicityComponent.h"
+#include "Player/MEFootstepComponent.h"
 #include "Core/MEGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -80,6 +81,7 @@ AMECharacter::AMECharacter()
 	DamageFeedback = CreateDefaultSubobject<UMEDamageFeedbackComponent>(TEXT("DamageFeedback"));
 	Medkit = CreateDefaultSubobject<UMEMedkitComponent>(TEXT("Medkit"));
 	Toxicity = CreateDefaultSubobject<UMEToxicityComponent>(TEXT("Toxicity"));
+	Footsteps = CreateDefaultSubobject<UMEFootstepComponent>(TEXT("Footsteps"));
 
 	// Heavy, grounded movement: slow acceleration, little air control
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
@@ -181,6 +183,12 @@ void AMECharacter::Landed(const FHitResult& Hit)
 
 	const float ImpactSpeed = FMath::Max(FallSpeed, -GetCharacterMovement()->Velocity.Z);
 	FallSpeed = 0.f;
+
+	// Stepping off a small ledge makes no landing sound, a jump does
+	if (ImpactSpeed >= LandingSoundMinSpeed && HeavyLandingSpeed > 0.f)
+	{
+		Footsteps->PlayLanding(ImpactSpeed / HeavyLandingSpeed);
+	}
 
 	if (ImpactSpeed >= FallDamageSpeed && FallDamageMaxSpeed > FallDamageSpeed)
 	{

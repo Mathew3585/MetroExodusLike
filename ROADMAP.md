@@ -32,7 +32,7 @@ Phase 3 : passage en **hybride** — bras FPS `SKM_Arms` sur la caméra pour l'a
 - [x] 1.5 Locomotion complète via Game Animation Sample (gratuit, retargeté) : marche arrière, strafe, rotation sur place
 - [x] 1.6 S'accroupir (transition de caméra fluide)
 - [x] 1.7 Poids Metro : rotation sur place, atterrissages léger/lourd (arrêt net + regard au sol), inclinaison en strafe
-- [-] 1.8 Bruits de pas → déplacé : bruit pour l'IA en Phase 5 (5.2), sons par surface en Phase 9 (9.4)
+- [x] 1.8 Bruits de pas (`UMEFootstepComponent` + `DA_Footsteps`) : pas détectés sur les pieds du corps (pas de notifies), son par Physical Material (FootstepsMiniPack), volume marche / sprint / accroupi, son de réception des sauts et chutes ; le bruit pour l'IA viendra en 5.2
 
 **Fini quand :** se déplacer est agréable et « lourd », et on voit son corps de façon crédible en regardant en bas.
 
@@ -116,7 +116,7 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [ ] 9.1 Level design final : tunnel → zone toxique → station occupée → sortie
 - [ ] 9.2 Sauvegarde / checkpoints
 - [ ] 9.3 Menu principal, pause, options (sensibilité, graphismes, volume)
-- [ ] 9.4 Audio : bruits de pas par surface (Physical Materials + anim notifies), ambiance, musique ; éclairage final
+- [ ] 9.4 Audio : compléter les sons de pas (terre, neige, gravats… selon la map), ambiance, musique ; éclairage final
 - [ ] 9.5 Optimisation (profiling Unreal Insights, LODs, culling)
 - [ ] 9.6 Playtests + corrections
 

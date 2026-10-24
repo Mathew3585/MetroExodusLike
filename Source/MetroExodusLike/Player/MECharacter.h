@@ -13,6 +13,7 @@ class UMEHealthComponent;
 class UMEDamageFeedbackComponent;
 class UMEMedkitComponent;
 class UMEToxicityComponent;
+class UMEFootstepComponent;
 class AController;
 class UMEAnimInstance;
 class UAnimSequenceBase;
@@ -103,6 +104,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEToxicityComponent> Toxicity;
 
+	/** Footsteps read from the body's feet, landing sounds. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEFootstepComponent> Footsteps;
+
 	/**
 	 * Extra meshes of the visible body (clothing...), following its pose.
 	 * Visible body meshes are cut without arms and head: the first-person arms replace them.
@@ -188,6 +193,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "s"))
 	float HeavyLandingRecoveryTime = 0.6f;
+
+	/** Landings faster than this are heard (both feet on the ground). */
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "cm/s"))
+	float LandingSoundMinSpeed = 200.f;
 
 	/** Landings faster than this hurt. */
 	UPROPERTY(EditDefaultsOnly, Category = "Movement|Landing", meta = (ClampMin = "0", Units = "cm/s"))
