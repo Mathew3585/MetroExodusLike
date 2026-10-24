@@ -17,7 +17,7 @@ Un tunnel + une station, des humains et quelques mutants, la survie avec masque 
 - [x] 0.2 Arborescence `Source/` par domaine (Core, Player créés ; Weapons, AI, Survival, Interaction, Inventory créés quand on en a besoin)
 - [x] 0.3 Build.cs : modules nécessaires (EnhancedInput, AIModule, GameplayTasks, NavigationSystem, UMG, PhysicsCore) + log `LogME`
 - [x] 0.4a `AMEGameMode`, `AMEPlayerController`, `AMECharacter` (caméra FP) + GameMode par défaut dans la config
-- [x] 0.4b Map de test greybox `Content/Maps/L_Test` (tunnel, escalier, rampe, caisses de saut, passage bas)
+- [x] 0.4b Map de test greybox `Content/Maps/L_Test` (aujourd'hui `MetroExodusLike/Maps/L_Test`) (tunnel, escalier, rampe, caisses de saut, passage bas)
 
 **Fini quand :** le projet compile, PIE démarre sur la map de test avec notre GameMode.
 

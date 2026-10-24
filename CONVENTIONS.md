@@ -55,17 +55,23 @@ Exceptions imposées par Unreal : le graphe d'animation (AnimBP) et la mise en p
 
 ## 4. Où ranger
 
-| Domaine | C++ (`Source/MetroExodusLike/`) | Content (`/Game/`) |
+`Content/` est coupé en deux : **nos assets** dans `/Game/MetroExodusLike/`, **les packs** dans `/Game/External/`.
+
+| Domaine | C++ (`Source/MetroExodusLike/`) | Content (`/Game/MetroExodusLike/`) |
 |---|---|---|
 | Règles globales | `Core/` | `Core/` |
-| Joueur, caméra, animation | `Player/` | `Player/`, `Player/Animations/` |
+| Joueur, caméra, animation | `Player/` | `Player/`, `Player/Animations/`, `Characters/Player/` (MetaHuman) |
 | Input | `Input/` | `Input/` |
 | Interaction | `Interaction/` | `Interaction/` |
 | Interface | `UI/` | `UI/` |
 | Armes, IA, survie, inventaire… | un dossier par domaine, créé quand on en a besoin | idem |
 | Niveaux | | `Maps/` |
 
-Packs achetés ou importés : dans leur propre dossier (`QuantumCharacter/`, `Characters/UEFN_Mannequin/` = sources GASP). On ne mélange pas nos assets avec ceux des packs.
+Packs achetés ou importés : un dossier par pack dans `/Game/External/` (`AR15_FPS_Animation_Pack/`, `QuantumCharacter/`, `UEFN_Mannequin/` = sources GASP, `Survival_Outfit/`, `FootstepsMiniPack/`…). On ne mélange pas nos assets avec ceux des packs : un asset de pack qu'on modifie ou adapte (retarget, copie) est copié chez nous. Si un pack s'importe ailleurs (dossier racine imposé), on le déplace dans `External/` **depuis l'éditeur**.
+
+Exceptions laissées à la racine : `MetaHumans/` (les outils MetaHuman exigent `/Game/MetaHumans/Common`), et les dossiers du moteur (`__ExternalActors__`, `__ExternalObjects__`, `Collections`, `Developers`).
+
+Déplacer des assets : **toujours dans l'éditeur** (jamais dans l'explorateur), puis clic droit sur le dossier → *Update Redirector References*, et mettre à jour les chemins écrits en dur dans `Config/*.ini`.
 
 `Source/MetroExodusLikeEditor/` : outils **éditeur uniquement** (jamais dans le jeu livré), par exemple la construction de WBP par script.
 
@@ -78,7 +84,7 @@ Packs achetés ou importés : dans leur propre dossier (`QuantumCharacter/`, `Ch
 
 ## 6. Règles de design Metro (décidées)
 
-- **Hybride (décidé en Phase 3)**, personnage **MetaHuman** (`Content/Characters/Player/`), monté comme la démo du pack AR-15 :
+- **Hybride (décidé en Phase 3)**, personnage **MetaHuman** (`/Game/MetroExodusLike/Characters/Player/`), monté comme la démo du pack AR-15 :
   - **Vue FPS** : `FirstPersonPivot` (hauteur des yeux, tourné avec la vue + head bob/respiration) → **bras FPS** du pack (squelette Mannequin) → **caméra sur l'os `head` des bras**. Les animations FPS du pack sont jouées **telles quelles** (jamais retargetées) : le cadrage et les mouvements de caméra sont ceux de l'animateur. L'arme FPS est sur `ik_hand_gun`.
   - **Bras FPS = bras MetaHuman sur le squelette du pack** (`SKM_Player_FPArms_Body/Outfit`) : export FBX des bras MH découpés + os `ik_*`/`interaction`/`center_of_mass` du pack, import sur `SK_Mannequin` (les os MH en plus y sont fusionnés, **ne jamais les supprimer** : leurs poids de skin seraient perdus). Translation retargeting de `SK_Mannequin` en **Animation** partout : les bras prennent les longueurs d'os du pack, mains et arme tombent comme l'animateur l'a prévu. À refaire si le pack est réimporté.
   - **Corps visible** = buste + jambes (`SKM_Player_Legs_*`, sans bras ni tête), sans ombre. **Corps du monde** = MetaHuman complet invisible (ombre, IA) avec l'arme du monde. Actions spéciales (escalade, takedown…) : « moment full body », on affiche le corps du monde.
