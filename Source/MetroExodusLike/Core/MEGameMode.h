@@ -17,4 +17,11 @@ public:
 
 	/** The player's body is removed and a new one starts at a player start (later: the last checkpoint). */
 	void RespawnPlayer(AController* Controller);
+
+	bool ShouldShowDebugAtStart() const { return bShowDebug; }
+
+protected:
+	/** Debug panel on screen at start (health, medkits, inventory, weapon...). MEDebug toggles it in game. */
+	UPROPERTY(EditDefaultsOnly, Category = "Debug")
+	bool bShowDebug = true;
 };

@@ -11,6 +11,7 @@ class UMEWeaponComponent;
 class UMEInventoryComponent;
 class UMEHealthComponent;
 class UMEDamageFeedbackComponent;
+class UMEMedkitComponent;
 class AController;
 class UMEAnimInstance;
 class UAnimSequenceBase;
@@ -37,6 +38,7 @@ public:
 	UMEWeaponComponent* GetWeapons() const { return Weapons; }
 	UMEInventoryComponent* GetInventory() const { return Inventory; }
 	UMEHealthComponent* GetHealth() const { return Health; }
+	UMEMedkitComponent* GetMedkit() const { return Medkit; }
 	USkeletalMeshComponent* GetFirstPersonArms() const { return FirstPersonArms; }
 	USkeletalMeshComponent* GetWorldBody() const { return ShadowMesh; }
 	const UMEInputConfig* GetInputConfig() const { return InputConfig; }
@@ -91,6 +93,9 @@ protected:
 	/** Hits, low health and death on screen and in the sound (no health bar). */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEDamageFeedbackComponent> DamageFeedback;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEMedkitComponent> Medkit;
 
 	/**
 	 * Extra meshes of the visible body (clothing...), following its pose.
@@ -213,6 +218,7 @@ private:
 	void AimReleased();
 	void InspectPressed();
 	void SwitchFireModePressed();
+	void MedkitPressed();
 	void UpdateMaxWalkSpeed();
 	void UpdateBodyRotation(float DeltaSeconds);
 	void UpdateLandingRecovery(float DeltaSeconds);

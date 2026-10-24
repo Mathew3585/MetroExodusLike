@@ -1,4 +1,5 @@
 #include "Player/MEPlayerController.h"
+#include "UI/MEHUD.h"
 #include "MetroExodusLike.h"
 #include "Player/MECharacter.h"
 #include "Input/MEInputConfig.h"
@@ -155,6 +156,14 @@ void AMEPlayerController::MEHeal(float Amount)
 	if (const AMECharacter* MECharacter = Cast<AMECharacter>(GetPawn()))
 	{
 		MECharacter->GetHealth()->Heal(Amount);
+	}
+}
+
+void AMEPlayerController::MEDebug()
+{
+	if (AMEHUD* DebugHUD = GetHUD<AMEHUD>())
+	{
+		DebugHUD->SetDebugShown(!DebugHUD->IsDebugShown());
 	}
 }
 

@@ -24,8 +24,11 @@ public:
 	/** Switches the arm loops to this weapon's. */
 	void SetWeaponData(const UMEWeaponData* WeaponData);
 
-	/** Plays an arms action on the slot (draw, fire, reload...). */
-	void PlayAction(UAnimSequenceBase* Animation);
+	/**
+	 * Plays an arms action on the slot (draw, fire, reload...).
+	 * bHoldLastFrame: stays on the last frame until the next action (weapon put away).
+	 */
+	void PlayAction(UAnimSequenceBase* Animation, bool bHoldLastFrame = false);
 
 	/** Cuts the current action short, blending back to the loops. */
 	void StopAction(float BlendOutTime);

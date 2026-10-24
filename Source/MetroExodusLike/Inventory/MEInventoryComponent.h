@@ -32,6 +32,9 @@ public:
 	/** Removes up to Quantity. Returns how many were removed. */
 	int32 Remove(UMEItemData* Item, int32 Quantity);
 
+	/** Every item carried and its count. */
+	const TMap<TObjectPtr<UMEItemData>, int32>& GetItems() const { return Items; }
+
 	FMEOnInventoryChanged OnChanged;
 
 protected:

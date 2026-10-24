@@ -53,7 +53,14 @@ public:
 	/** Looks the weapon over. Cut short by firing, aiming, reloading or sprinting. */
 	void Inspect();
 
-	/** Drawing or reloading: no firing, no other action. */
+	/**
+	 * Gesture with the weapon away (medkit, later gas mask...): holster, keep it out of view for HiddenTime, draw again.
+	 * Busy for the whole gesture. Returns the time from now when the weapon is out of view
+	 * (0 unarmed), or a negative value if the weapon is busy.
+	 */
+	float PutAwayFor(float HiddenTime);
+
+	/** Drawing, reloading, put away: no firing, no other action. */
 	bool IsBusy() const;
 
 	/** Aim button pressed / released. Aiming waits while busy, sprinting or blocked by a wall. */
@@ -101,7 +108,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Wall", meta = (ClampMin = "0", ClampMax = "1"))
 	float MaxWallBlockToFire = 0.3f;
 
-	/** Draws the impacts and prints the ammo on screen (until there is a HUD / watch). */
+	/** Draws the impacts (ammo and the rest: debug panel of AMEHUD). */
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Debug")
 	bool bDebugShots = true;
 
@@ -111,7 +118,8 @@ private:
 	 * Plays the arms + weapon animations and the sound. Returns the arms animation length.
 	 * Interruptible actions (fire, inspect) give way when the stance changes (aim in / out, sprint).
 	 */
-	float PlayAction(const FMEWeaponAnimation& Action, bool bInterruptible = false);
+	float PlayAction(const FMEWeaponAnimation& Action, bool bInterruptible = false, bool bHoldLastFrame = false);
+	void DrawBack();
 
 	/** Cuts an interruptible action still playing: arms back to the loops, weapon back to its rest pose, sound stopped. */
 	void InterruptAction();
@@ -126,7 +134,6 @@ private:
 	/** Throws a casing out of the ejection port, where it is seen on screen. */
 	void EjectShell();
 	void FinishReload();
-	void PrintAmmo() const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<AMECharacter> Character;
@@ -185,4 +192,5 @@ private:
 	/** Until this time the weapon is drawing / reloading. */
 	double BusyUntil = 0.0;
 	FTimerHandle ReloadTimer;
+	FTimerHandle DrawBackTimer;
 };

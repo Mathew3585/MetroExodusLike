@@ -3,6 +3,7 @@
 #include "Weapons/MEWeaponData.h"
 #include "Weapons/MEWeaponComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Animation/AnimMontage.h"
 
 UMEFirstPersonAnimInstance::UMEFirstPersonAnimInstance()
 {
@@ -64,10 +65,16 @@ void UMEFirstPersonAnimInstance::StopAction(float BlendOutTime)
 	StopSlotAnimation(BlendOutTime, ActionSlot);
 }
 
-void UMEFirstPersonAnimInstance::PlayAction(UAnimSequenceBase* Animation)
+void UMEFirstPersonAnimInstance::PlayAction(UAnimSequenceBase* Animation, bool bHoldLastFrame)
 {
-	if (Animation)
+	if (!Animation)
 	{
-		PlaySlotAnimationAsDynamicMontage(Animation, ActionSlot, 0.1f, 0.15f);
+		return;
+	}
+
+	// The dynamic montage is made for this play only: changing it affects nothing else
+	if (UAnimMontage* Montage = PlaySlotAnimationAsDynamicMontage(Animation, ActionSlot, 0.1f, 0.15f))
+	{
+		Montage->bEnableAutoBlendOut = !bHoldLastFrame;
 	}
 }

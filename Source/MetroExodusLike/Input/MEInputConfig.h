@@ -52,4 +52,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
 	TObjectPtr<UInputAction> SwitchFireModeAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
+	TObjectPtr<UInputAction> MedkitAction;
 };

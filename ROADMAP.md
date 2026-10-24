@@ -69,7 +69,8 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 
 ## Phase 4 — Survie
 - [x] 4.1 Santé joueur (`UMEHealthComponent`), dégâts de chute, ressenti sans HUD (`UMEDamageFeedbackComponent` : flash + sursaut de vue au coup, vignette qui bat avec le cœur et couleurs délavées sous 50 %, grognements / cri de mort aléatoires), mort (vue qui s'écroule, fondu au noir) puis respawn ; commandes `MEDamage` / `MEHeal` / `MEKill`
-- [ ] 4.2 Medkit (raccourci, animation)
+- [~] 4.2 Medkit sur Q (`UMEMedkitComponent`, objet d'inventaire `DA_Item_Medkit`) : arme rangée, injection, santé rendue sur 1,5 s ; geste « arme rangée » réutilisable (`PutAwayFor`, Holster / Draw du pack) ; **reste l'animation medkit et le son** → voir *Assets à trouver*
+  - Panneau de debug (`AMEHUD`) : santé, inventaire, arme, mouvement ; **Show Debug** dans `BP_MEGameMode`, commande `MEDebug`
 - [ ] 4.3 Zones toxiques (volumes)
 - [ ] 4.4 Masque à gaz : mettre / retirer, filtres avec chrono, essoufflement
 - [ ] 4.5 Visière : buée / fissures (post-process), essuyer la visière
@@ -134,6 +135,9 @@ On cherche d'abord du gratuit / pas cher (Fab, Epic, Freesound), licence vérifi
 | Son de douleur du joueur (grognement, plusieurs variantes) | 4.1 | `BP_MECharacter` → DamageFeedback → Hurt Sound | branché : `SC_Player_Hurt` (HumanVocalizations, voix Male A) |
 | Battement de cœur **en boucle** | 4.1 | `BP_MECharacter` → DamageFeedback → Heartbeat Sound | à trouver |
 | Son de mort du joueur | 4.1 | `BP_MECharacter` → DamageFeedback → Death Sound | branché : `SC_Player_Death` (HumanVocalizations, voix Male A) |
+| Animation medkit des bras FPS (main gauche, arme en main droite) ; en attendant : arme rangée (Holster) puis ressortie | 4.2 | `UMEMedkitComponent` + un clip par arme dans `DA_Weapon_*` | à trouver |
+| Son d'injection / de seringue | 4.2 | `BP_MECharacter` → Medkit → Inject Sound | à trouver |
+| Mesh de medkit (objet ramassable) | 4.2 | `DA_Item_Medkit` → World Mesh + un `BP_Pickup_Medkit` | à trouver |
 | Toux, respiration sous masque (marche / course) | 4.4 | masque à gaz | déjà dans le projet : `External/HumanVocalizations/HumanMaleA` |
 
 ---

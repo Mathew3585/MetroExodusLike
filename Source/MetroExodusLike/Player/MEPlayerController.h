@@ -35,6 +35,10 @@ public:
 	UFUNCTION(Exec)
 	void MEHeal(float Amount);
 
+	/** MEDebug: shows / hides the debug panel. */
+	UFUNCTION(Exec)
+	void MEDebug();
+
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;

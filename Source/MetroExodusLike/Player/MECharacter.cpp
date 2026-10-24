@@ -9,6 +9,7 @@
 #include "Inventory/MEInventoryComponent.h"
 #include "Combat/MEHealthComponent.h"
 #include "Player/MEDamageFeedbackComponent.h"
+#include "Survival/MEMedkitComponent.h"
 #include "Core/MEGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -76,6 +77,7 @@ AMECharacter::AMECharacter()
 	Inventory = CreateDefaultSubobject<UMEInventoryComponent>(TEXT("Inventory"));
 	Health = CreateDefaultSubobject<UMEHealthComponent>(TEXT("Health"));
 	DamageFeedback = CreateDefaultSubobject<UMEDamageFeedbackComponent>(TEXT("DamageFeedback"));
+	Medkit = CreateDefaultSubobject<UMEMedkitComponent>(TEXT("Medkit"));
 
 	// Heavy, grounded movement: slow acceleration, little air control
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
@@ -387,6 +389,10 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	{
 		Input->BindAction(InputConfig->SwitchFireModeAction, ETriggerEvent::Started, this, &AMECharacter::SwitchFireModePressed);
 	}
+	if (InputConfig->MedkitAction)
+	{
+		Input->BindAction(InputConfig->MedkitAction, ETriggerEvent::Started, this, &AMECharacter::MedkitPressed);
+	}
 }
 
 bool AMECharacter::CanInteract() const
@@ -439,6 +445,11 @@ void AMECharacter::ReloadPressed()
 void AMECharacter::SwitchFireModePressed()
 {
 	Weapons->SwitchFireMode();
+}
+
+void AMECharacter::MedkitPressed()
+{
+	Medkit->UseMedkit();
 }
 
 void AMECharacter::InteractReleased()

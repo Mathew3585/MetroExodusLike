@@ -167,7 +167,6 @@ void UMEWeaponComponent::SwitchFireMode()
 		}
 		PlayAction(Action, true);
 	}
-	PrintAmmo();
 }
 
 int32 UMEWeaponComponent::GetReserveAmmo() const
@@ -420,7 +419,6 @@ void UMEWeaponComponent::FireShot()
 		}
 	}
 
-	PrintAmmo();
 }
 
 void UMEWeaponComponent::EjectShell()
@@ -512,19 +510,6 @@ void UMEWeaponComponent::FinishReload()
 		? Character->GetInventory()->Remove(Data->AmmoType, Weapon->GetRoomInMagazine())
 		: Weapon->GetRoomInMagazine();
 	Weapon->LoadRounds(Rounds);
-	PrintAmmo();
-}
-
-void UMEWeaponComponent::PrintAmmo() const
-{
-	const UMEWeaponData* Data = GetWeaponData();
-	if (bDebugShots && GEngine && Data)
-	{
-		const FText Mode = StaticEnum<EMEFireMode>()->GetDisplayNameTextByValue(static_cast<int64>(Weapon->GetFireMode()));
-		// Same key every time: the line is replaced instead of stacking
-		GEngine->AddOnScreenDebugMessage(static_cast<uint64>(GetUniqueID()), 5.f, FColor::White,
-			FString::Printf(TEXT("%s [%s]  %d / %d"), *Data->DisplayName.ToString(), *Mode.ToString(), Weapon->GetAmmoInMagazine(), GetReserveAmmo()));
-	}
 }
 
 void UMEWeaponComponent::UpdateWallBlock(float DeltaTime)
@@ -562,9 +547,6 @@ void UMEWeaponComponent::BeginPlay()
 	{
 		return;
 	}
-
-	// Picked-up ammo changes the reserve
-	Character->GetInventory()->OnChanged.AddWeakLambda(this, [this](const UMEItemData*, int32) { PrintAmmo(); });
 
 	if (StartingWeapon)
 	{
@@ -633,11 +615,39 @@ void UMEWeaponComponent::Equip(TSubclassOf<AMEWeapon> WeaponClass)
 
 	Character->SetBodyWeaponPose(Data->BodyHoldPose);
 
-	BusyUntil = GetWorld()->GetTimeSeconds() + PlayAction(Data->Draw);
-	PrintAmmo();
+	BusyUntil = GetWorld()->GetTimeSeconds() + PlayAction(Data->FirstDraw.Arms ? Data->FirstDraw : Data->Draw);
 }
 
-float UMEWeaponComponent::PlayAction(const FMEWeaponAnimation& Action, bool bInterruptible)
+float UMEWeaponComponent::PutAwayFor(float HiddenTime)
+{
+	const UMEWeaponData* Data = GetWeaponData();
+	if (!Data)
+	{
+		return 0.f;
+	}
+	if (IsBusy())
+	{
+		return -1.f;
+	}
+
+	BurstShotsLeft = 0;
+
+	const float HolsterLength = PlayAction(Data->Holster, false, true);
+	const float DrawLength = Data->Draw.Arms ? Data->Draw.Arms->GetPlayLength() : 0.f;
+	BusyUntil = GetWorld()->GetTimeSeconds() + HolsterLength + HiddenTime + DrawLength;
+	GetWorld()->GetTimerManager().SetTimer(DrawBackTimer, this, &UMEWeaponComponent::DrawBack, FMath::Max(HolsterLength + HiddenTime, 0.01f));
+	return HolsterLength;
+}
+
+void UMEWeaponComponent::DrawBack()
+{
+	if (const UMEWeaponData* Data = GetWeaponData())
+	{
+		PlayAction(Data->Draw);
+	}
+}
+
+float UMEWeaponComponent::PlayAction(const FMEWeaponAnimation& Action, bool bInterruptible, bool bHoldLastFrame)
 {
 	// A new action replaces the previous one: an interrupted inspect must not keep talking
 	if (IsPlayingInterruptibleAction())
@@ -651,7 +661,7 @@ float UMEWeaponComponent::PlayAction(const FMEWeaponAnimation& Action, bool bInt
 
 	if (UMEFirstPersonAnimInstance* ArmsAnim = Cast<UMEFirstPersonAnimInstance>(Character->GetFirstPersonArms()->GetAnimInstance()))
 	{
-		ArmsAnim->PlayAction(Action.Arms);
+		ArmsAnim->PlayAction(Action.Arms, bHoldLastFrame);
 	}
 	Weapon->PlayWeaponAnimation(Action.Weapon);
 

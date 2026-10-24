@@ -168,8 +168,17 @@ public:
 
 	// --- One-shots (arms + weapon) ---
 
+	/** Taking the weapon out (after a gesture with the weapon put away...). */
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Actions")
 	FMEWeaponAnimation Draw;
+
+	/** First time the weapon is taken out (longer, the weapon is shown off). Optional: Draw is used without it. */
+	UPROPERTY(EditDefaultsOnly, Category = "Animations|Actions")
+	FMEWeaponAnimation FirstDraw;
+
+	/** Putting the weapon away, out of view: its last frame is held until the Draw. */
+	UPROPERTY(EditDefaultsOnly, Category = "Animations|Actions")
+	FMEWeaponAnimation Holster;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animations|Actions")
 	FMEWeaponAnimation Fire;
