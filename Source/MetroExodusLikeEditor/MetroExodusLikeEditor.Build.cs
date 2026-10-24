@@ -14,7 +14,10 @@ public class MetroExodusLikeEditor : ModuleRules
 			"UMG",
 			"UMGEditor",
 			"UnrealEd",
-			"Kismet"
+			"Kismet",
+			"AnimGraph",       // Custom anim graph nodes
+			"BlueprintGraph",
+			"MetroExodusLike"
 		});
 	}
 }

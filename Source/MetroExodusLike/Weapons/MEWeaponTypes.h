@@ -82,6 +82,75 @@ struct FMERecoilSettings
 	float AimScale = 0.45f;
 };
 
+/**
+ * Weapon inertia: arms and weapon lag behind the view and the body, then spring back. Hip values, scaled down when aiming.
+ * In view space; the weapon turns around its grip.
+ */
+USTRUCT(BlueprintType)
+struct FMESwaySettings
+{
+	GENERATED_BODY()
+
+	/** How far behind a turn the weapon is left: seconds of turn (0.02 = turning at 300 deg/s leaves it 6 deg behind). */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "s"))
+	float LookLag = 0.02f;
+
+	/** Most the weapon is left behind when turning. */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
+	float MaxLookAngle = 6.f;
+
+	/** Weapon roll per degree it is left behind sideways (the weight tips it). */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
+	float LookRoll = 0.5f;
+
+	/** Ground speed at which the move sway is full. */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "1", Units = "cm/s"))
+	float MoveReferenceSpeed = 350.f;
+
+	/** Weapon pushed back, left behind sideways (full speed). */
+	UPROPERTY(EditAnywhere, meta = (Units = "cm"))
+	FVector MoveOffset = FVector(1.f, 1.2f, 0.f);
+
+	/** Weapon roll when strafing (full speed). */
+	UPROPERTY(EditAnywhere, meta = (Units = "Degrees"))
+	float MoveRoll = 4.f;
+
+	/** Weapon left behind up / down per cm/s of vertical speed (floats up when falling, sinks when jumping). */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "s"))
+	float VerticalLag = 0.004f;
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "cm"))
+	float MaxVerticalOffset = 3.f;
+
+	/** Landing: weapon thrown down, per cm/s of fall speed (spring impulse, location and pitch). */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
+	float LandingKick = 0.08f;
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
+	float LandingPitchKick = 0.15f;
+
+	/** Standing: slow figure eight of the weapon, rested and exhausted (see the camera's exertion). */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
+	float RestedIdleAngle = 0.3f;
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Degrees"))
+	float ExhaustedIdleAngle = 1.2f;
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", Units = "Hz"))
+	float IdleRate = 0.25f;
+
+	/** Spring bringing the weapon back: higher stiffness = lighter weapon, lower damping = more bounce. */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
+	float Stiffness = 140.f;
+
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0"))
+	float Damping = 16.f;
+
+	/** Everything above is multiplied by this when aiming. */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0", ClampMax = "1"))
+	float AimScale = 0.2f;
+};
+
 /** Bullet spread: a cone around the view, grows with each shot and with movement. */
 USTRUCT(BlueprintType)
 struct FMESpreadSettings

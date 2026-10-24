@@ -58,6 +58,21 @@ bool UMEEditorGraphLibrary::LinkPins(UBlueprint* Blueprint, FName GraphName, FNa
 	return bLinked;
 }
 
+bool UMEEditorGraphLibrary::RemoveNode(UBlueprint* Blueprint, FName GraphName, FName NodeName)
+{
+	UEdGraph* Graph = FindGraph(Blueprint, GraphName);
+	const TObjectPtr<UEdGraphNode>* Found = Graph ? Graph->Nodes.FindByPredicate([NodeName](const UEdGraphNode* Node) { return Node && Node->GetFName() == NodeName; }) : nullptr;
+	if (!Found)
+	{
+		return false;
+	}
+
+	// Same as deleting it in the graph editor: links broken, node destroyed
+	Graph->Modify();
+	FBlueprintEditorUtils::RemoveNode(Blueprint, *Found, true);
+	return true;
+}
+
 TArray<FString> UMEEditorGraphLibrary::GetPinNames(UBlueprint* Blueprint, FName GraphName, FName NodeName)
 {
 	TArray<FString> Names;

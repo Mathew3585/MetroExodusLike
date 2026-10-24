@@ -66,6 +66,9 @@ public:
 	/** Arms + weapon recoil offset, in view space (X forward, Z up). */
 	FVector GetArmsKick() const { return ArmsKick; }
 
+	/** Arms + weapon inertia (sway), in view space, rotation around the grip. */
+	const FTransform& GetArmsSway() const { return ArmsSway; }
+
 	/** Current spread cone half-angle. */
 	float GetSpreadAngle() const;
 
@@ -118,6 +121,7 @@ private:
 	void UpdateAiming(float DeltaTime);
 	void UpdateRecoil(float DeltaTime);
 	void AddRecoil();
+	void UpdateSway(float DeltaTime);
 	void FireShot();
 	/** Throws a casing out of the ejection port, where it is seen on screen. */
 	void EjectShell();
@@ -160,6 +164,18 @@ private:
 	FVector ArmsKick = FVector::ZeroVector;
 	FVector ArmsKickVelocity = FVector::ZeroVector;
 	float SpreadBloom = 0.f;
+
+	// Sway: springs in view space (rotation as pitch, yaw, roll), idle cycle, landing detection
+	FTransform ArmsSway = FTransform::Identity;
+	FVector SwayLocation = FVector::ZeroVector;
+	FVector SwayLocationVelocity = FVector::ZeroVector;
+	FVector SwayRotation = FVector::ZeroVector;
+	FVector SwayRotationVelocity = FVector::ZeroVector;
+	float SwayIdlePhase = 0.f;
+	float SwayFallSpeed = 0.f;
+	bool bSwayWasFalling = false;
+	FRotator LastControlRotation = FRotator::ZeroRotator;
+	bool bHasLastControlRotation = false;
 
 	/** Casings in the world, reused oldest first past the weapon's limit. */
 	UPROPERTY(Transient)

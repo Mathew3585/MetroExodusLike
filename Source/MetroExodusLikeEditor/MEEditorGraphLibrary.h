@@ -24,6 +24,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ME Editor|Graphs")
 	static bool LinkPins(UBlueprint* Blueprint, FName GraphName, FName FromNode, FName FromPin, FName ToNode, FName ToPin);
 
+	/** Deletes a node of the named graph, its links broken (like Delete in the editor). Returns false if not found. */
+	UFUNCTION(BlueprintCallable, Category = "ME Editor|Graphs")
+	static bool RemoveNode(UBlueprint* Blueprint, FName GraphName, FName NodeName);
+
 	/** Names of the pins of a node ("Name (in)" / "Name (out)"). */
 	UFUNCTION(BlueprintCallable, Category = "ME Editor|Graphs")
 	static TArray<FString> GetPinNames(UBlueprint* Blueprint, FName GraphName, FName NodeName);

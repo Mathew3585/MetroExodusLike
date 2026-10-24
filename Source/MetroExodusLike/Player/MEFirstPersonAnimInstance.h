@@ -61,11 +61,11 @@ protected:
 	float AimAlpha = 0.f;
 
 	/**
-	 * Recoil: translation added to the clavicles and the gun bone, in component space.
-	 * The whole rig moves together, the head (camera) stays.
+	 * Recoil kick + sway, in component space, for the ME Arms Offset node:
+	 * the arms and the weapon move together around the grip, the head (camera) stays.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Recoil")
-	FVector ArmsKickOffset = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Motion")
+	FTransform ArmsOffset;
 
 	// Close to a wall: the weapon goes to the close pose, then the against pose. Blended over everything else.
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon|Wall")

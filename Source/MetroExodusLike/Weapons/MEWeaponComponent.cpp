@@ -38,7 +38,80 @@ void UMEWeaponComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 	UpdateWallBlock(DeltaTime);
 	UpdateAiming(DeltaTime);
 	UpdateFiring();
+	// Before the recoil moves the view: the sway follows the player's turns only
+	UpdateSway(DeltaTime);
 	UpdateRecoil(DeltaTime);
+
+	if (const AController* Controller = Character ? Character->GetController() : nullptr)
+	{
+		LastControlRotation = Controller->GetControlRotation();
+		bHasLastControlRotation = true;
+	}
+}
+
+void UMEWeaponComponent::UpdateSway(float DeltaTime)
+{
+	const UMEWeaponData* Data = GetWeaponData();
+	const AController* Controller = Character ? Character->GetController() : nullptr;
+	if (!Data || !Controller || DeltaTime <= 0.f)
+	{
+		return;
+	}
+	const FMESwaySettings& Sway = Data->Sway;
+	const float Scale = FMath::Lerp(1.f, Sway.AimScale, AimAlpha);
+	const UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+
+	// Look: the weapon is left behind the turn, tipping with its weight
+	const FRotator ControlRotation = Controller->GetControlRotation();
+	const FRotator Turn = bHasLastControlRotation ? (ControlRotation - LastControlRotation).GetNormalized() : FRotator::ZeroRotator;
+	const float LagYaw = FMath::Clamp(-Turn.Yaw / DeltaTime * Sway.LookLag, -Sway.MaxLookAngle, Sway.MaxLookAngle);
+	const float LagPitch = FMath::Clamp(-Turn.Pitch / DeltaTime * Sway.LookLag, -Sway.MaxLookAngle, Sway.MaxLookAngle);
+
+	// Move: pushed back and left behind sideways, rolled when strafing; vertical speed lifts or sinks it
+	const FVector LocalVelocity = FRotator(0.f, ControlRotation.Yaw, 0.f).UnrotateVector(Movement->Velocity);
+	const FVector Move = Movement->IsMovingOnGround()
+		? (LocalVelocity / Sway.MoveReferenceSpeed).BoundToCube(1.f)
+		: FVector::ZeroVector;
+	const float Vertical = FMath::Clamp(-LocalVelocity.Z * Sway.VerticalLag, -Sway.MaxVerticalOffset, Sway.MaxVerticalOffset);
+
+	// View space (X forward, Y right, Z up); rotation as (pitch, yaw, roll)
+	const FVector TargetLocation = FVector(-Move.X * Sway.MoveOffset.X, -Move.Y * Sway.MoveOffset.Y, Vertical) * Scale;
+	const FVector TargetRotation = FVector(LagPitch, LagYaw, LagYaw * Sway.LookRoll + Move.Y * Sway.MoveRoll) * Scale;
+
+	// Landing: thrown down, then the spring brings it back
+	const bool bIsFalling = Movement->IsFalling();
+	if (bIsFalling)
+	{
+		SwayFallSpeed = FMath::Max(0.f, -Movement->Velocity.Z);
+	}
+	else if (bSwayWasFalling)
+	{
+		SwayLocationVelocity.Z -= SwayFallSpeed * Sway.LandingKick * Scale;
+		SwayRotationVelocity.X -= SwayFallSpeed * Sway.LandingPitchKick * Scale;
+	}
+	bSwayWasFalling = bIsFalling;
+
+	// Damped springs toward the targets, sub-stepped to stay stable on long frames
+	constexpr float MaxStep = 1.f / 120.f;
+	float Remaining = DeltaTime;
+	while (Remaining > 0.f)
+	{
+		const float Step = FMath::Min(Remaining, MaxStep);
+		SwayLocationVelocity += (Sway.Stiffness * (TargetLocation - SwayLocation) - Sway.Damping * SwayLocationVelocity) * Step;
+		SwayLocation += SwayLocationVelocity * Step;
+		SwayRotationVelocity += (Sway.Stiffness * (TargetRotation - SwayRotation) - Sway.Damping * SwayRotationVelocity) * Step;
+		SwayRotation += SwayRotationVelocity * Step;
+		Remaining -= Step;
+	}
+
+	// Idle: slow figure eight, wider when out of breath
+	const float Exertion = Character->GetFirstPersonCamera() ? Character->GetFirstPersonCamera()->GetExertion() : 0.f;
+	const float IdleAngle = FMath::Lerp(Sway.RestedIdleAngle, Sway.ExhaustedIdleAngle, Exertion) * Scale;
+	SwayIdlePhase = FMath::Fmod(SwayIdlePhase + DeltaTime * Sway.IdleRate * UE_TWO_PI, UE_TWO_PI);
+	const FVector Idle(FMath::Sin(SwayIdlePhase * 2.f) * IdleAngle * 0.5f, FMath::Sin(SwayIdlePhase) * IdleAngle, 0.f);
+
+	const FVector Rotation = SwayRotation + Idle;
+	ArmsSway = FTransform(FRotator(Rotation.X, Rotation.Y, Rotation.Z), SwayLocation);
 }
 
 void UMEWeaponComponent::UpdateAiming(float DeltaTime)

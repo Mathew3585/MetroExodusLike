@@ -35,8 +35,12 @@ void UMEFirstPersonAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	const UMEWeaponComponent* Weapons = Character->GetWeapons();
 	AimAlpha = AimLoop ? Weapons->GetAimAlpha() : 0.f;
 
-	// The kick is in view space; the arms mesh is turned relative to the view pivot
-	ArmsKickOffset = GetSkelMeshComponent()->GetRelativeRotation().UnrotateVector(Weapons->GetArmsKick());
+	// Kick and sway are in view space; the arms mesh is turned relative to the view pivot
+	const FQuat ArmsRotation = GetSkelMeshComponent()->GetRelativeRotation().Quaternion();
+	const FTransform& Sway = Weapons->GetArmsSway();
+	ArmsOffset = FTransform(
+		ArmsRotation.Inverse() * Sway.GetRotation() * ArmsRotation,
+		ArmsRotation.UnrotateVector(Sway.GetTranslation() + Weapons->GetArmsKick()));
 
 	// First half of the wall block pulls the weapon back, second half raises it
 	const float WallBlock = Weapons->GetWallBlockAmount();

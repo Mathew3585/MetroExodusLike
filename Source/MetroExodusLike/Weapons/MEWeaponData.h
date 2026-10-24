@@ -64,6 +64,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Handling")
 	FMESpreadSettings Spread;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Handling")
+	FMESwaySettings Sway;
+
 	// --- Aiming ---
 
 	/** View field of view when fully aiming. */

@@ -20,7 +20,8 @@ public class MetroExodusLike : ModuleRules
 			"GameplayTasks",     // Required by AIModule tasks
 			"NavigationSystem",  // Navmesh queries
 			"UMG",               // Widgets (prompts, menus)
-			"Niagara"            // Effects (impacts, muzzle flash)
+			"Niagara",           // Effects (impacts, muzzle flash)
+			"AnimGraphRuntime"   // Custom anim nodes (arms offset)
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
