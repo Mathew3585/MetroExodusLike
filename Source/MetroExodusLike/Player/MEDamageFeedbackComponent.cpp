@@ -2,6 +2,8 @@
 #include "Player/MECharacter.h"
 #include "Player/MEFirstPersonCameraComponent.h"
 #include "Combat/MEHealthComponent.h"
+#include "Combat/MEDamageType_Toxic.h"
+#include "Survival/METoxicityComponent.h"
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -50,6 +52,13 @@ void UMEDamageFeedbackComponent::HandleHealthChanged(float Health, float Delta, 
 		return;
 	}
 
+	// Choking on gas: the coughs and the toxic screen say it, no grunt, no jolt
+	const UDamageType* DamageType = Character->GetHealth()->GetCurrentDamageType();
+	if (DamageType && DamageType->IsA<UMEDamageType_Toxic>())
+	{
+		return;
+	}
+
 	Flash = FMath::Min(1.f, Flash - Delta * FlashPerDamage);
 	Character->GetFirstPersonCamera()->AddImpactKick(-Delta * KickPerDamage);
 	const float Now = GetWorld()->GetTimeSeconds();
@@ -90,15 +99,19 @@ void UMEDamageFeedbackComponent::TickComponent(float DeltaTime, ELevelTick TickT
 		? FMath::Clamp((GetWorld()->GetTimeSeconds() - DeathTime - DeathFadeDelay) / DeathFadeTime, 0.f, 1.f)
 		: 0.f;
 
+	const float Toxic = Character->GetToxicity()->GetToxicity();
+
 	// Blended over whatever the level's post-process volumes set
 	FPostProcessSettings& Settings = Character->GetFirstPersonCamera()->PostProcessSettings;
 	Settings.bOverride_VignetteIntensity = true;
-	Settings.VignetteIntensity = 0.4f + Flash * FlashVignette + Pulse * LowHealthVignette;
+	Settings.VignetteIntensity = 0.4f + Flash * FlashVignette + Pulse * LowHealthVignette + Toxic * ToxicVignette;
 	Settings.bOverride_ColorSaturation = true;
-	Settings.ColorSaturation = FVector4(FVector(FMath::Lerp(1.f, LowHealthSaturation, LowHealth)), 1.f);
+	Settings.ColorSaturation = FVector4(FVector(FMath::Lerp(1.f, LowHealthSaturation, LowHealth) * FMath::Lerp(1.f, ToxicSaturation, Toxic)), 1.f);
 	Settings.bOverride_SceneColorTint = true;
-	Settings.SceneColorTint = FMath::Lerp(FLinearColor::White, FlashTint, Flash) * (1.f - Fade);
+	Settings.SceneColorTint = FMath::Lerp(FLinearColor::White, FlashTint, Flash) * FMath::Lerp(FLinearColor::White, ToxicTint, Toxic) * (1.f - Fade);
 	Settings.SceneColorTint.A = 1.f;
+	Settings.bOverride_SceneFringeIntensity = true;
+	Settings.SceneFringeIntensity = Toxic * ToxicFringe;
 
 	if (Heartbeat)
 	{

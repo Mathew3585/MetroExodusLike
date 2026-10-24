@@ -5,6 +5,7 @@
 #include "Inventory/MEInventoryComponent.h"
 #include "Inventory/MEItemData.h"
 #include "Survival/MEMedkitComponent.h"
+#include "Survival/METoxicityComponent.h"
 #include "Weapons/MEWeapon.h"
 #include "Weapons/MEWeaponComponent.h"
 #include "Weapons/MEWeaponData.h"
@@ -49,6 +50,10 @@ void AMEHUD::DrawDebugPanel()
 	{
 		Lines.Add(TEXT("Medkit    in use"));
 	}
+	const UMEToxicityComponent* Toxicity = Character->GetToxicity();
+	Lines.Add(FString::Printf(TEXT("Toxicity  %.0f %%%s%s"), Toxicity->GetToxicity() * 100.f,
+		Toxicity->GetExposure() > 0.f ? *FString::Printf(TEXT("  in gas (density %.1f)"), Toxicity->GetExposure()) : TEXT(""),
+		Toxicity->IsProtected() ? TEXT("  PROTECTED") : TEXT("")));
 
 	Lines.Add(TEXT(""));
 	Lines.Add(TEXT("Inventory"));

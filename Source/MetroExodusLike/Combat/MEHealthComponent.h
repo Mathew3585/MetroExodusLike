@@ -34,6 +34,9 @@ public:
 	/** Back to full health, alive again (respawn, target reset...). */
 	void Revive();
 
+	/** Kind of the damage being dealt, valid inside OnHealthChanged / OnDeath only (null for heals). */
+	const UDamageType* GetCurrentDamageType() const { return CurrentDamageType; }
+
 	FMEHealthChangedSignature OnHealthChanged;
 	FMEDeathSignature OnDeath;
 
@@ -52,4 +55,7 @@ private:
 	void HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
 
 	float Health = 0.f;
+
+	/** Class default object of the damage type: never collected, no UPROPERTY needed. */
+	const UDamageType* CurrentDamageType = nullptr;
 };

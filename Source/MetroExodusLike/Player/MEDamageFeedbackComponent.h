@@ -13,6 +13,7 @@ class USoundBase;
  * How the player feels their health, without a health bar: everything is on the screen and in the sound.
  *  - hit: red flash at the screen edges, the view jolts, hurt sound;
  *  - low health: vignette pulsing with the heartbeat, colors drain, heartbeat sound;
+ *  - toxic air: sickly tint, the view closes in, color fringes;
  *  - death: fade to black.
  * Drives the post-process of the first-person camera.
  */
@@ -88,6 +89,24 @@ protected:
 	/** How fast the low-health effects follow the health. */
 	UPROPERTY(EditDefaultsOnly, Category = "Feedback|Low Health", meta = (ClampMin = "0"))
 	float LowHealthBlendSpeed = 3.f;
+
+	// --- Toxic air ---
+
+	/** Screen tint when fully poisoned. */
+	UPROPERTY(EditDefaultsOnly, Category = "Feedback|Toxic")
+	FLinearColor ToxicTint = FLinearColor(0.75f, 0.95f, 0.55f);
+
+	/** Vignette added when fully poisoned: the view closes in. */
+	UPROPERTY(EditDefaultsOnly, Category = "Feedback|Toxic", meta = (ClampMin = "0"))
+	float ToxicVignette = 1.f;
+
+	/** Color fringes at the screen edges when fully poisoned (blurred, watering eyes). */
+	UPROPERTY(EditDefaultsOnly, Category = "Feedback|Toxic", meta = (ClampMin = "0", ClampMax = "5"))
+	float ToxicFringe = 4.f;
+
+	/** Color saturation when fully poisoned (1 = unchanged). */
+	UPROPERTY(EditDefaultsOnly, Category = "Feedback|Toxic", meta = (ClampMin = "0", ClampMax = "1"))
+	float ToxicSaturation = 0.6f;
 
 	// --- Death ---
 

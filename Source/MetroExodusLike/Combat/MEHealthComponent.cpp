@@ -23,12 +23,14 @@ void UMEHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage,
 
 	const float OldHealth = Health;
 	Health = FMath::Max(0.f, Health - Damage);
+	CurrentDamageType = DamageType;
 	OnHealthChanged.Broadcast(Health, Health - OldHealth, InstigatedBy);
 
 	if (IsDead())
 	{
 		OnDeath.Broadcast(InstigatedBy);
 	}
+	CurrentDamageType = nullptr;
 }
 
 void UMEHealthComponent::Heal(float Amount)

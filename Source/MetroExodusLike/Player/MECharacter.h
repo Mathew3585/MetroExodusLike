@@ -12,6 +12,7 @@ class UMEInventoryComponent;
 class UMEHealthComponent;
 class UMEDamageFeedbackComponent;
 class UMEMedkitComponent;
+class UMEToxicityComponent;
 class AController;
 class UMEAnimInstance;
 class UAnimSequenceBase;
@@ -39,6 +40,7 @@ public:
 	UMEInventoryComponent* GetInventory() const { return Inventory; }
 	UMEHealthComponent* GetHealth() const { return Health; }
 	UMEMedkitComponent* GetMedkit() const { return Medkit; }
+	UMEToxicityComponent* GetToxicity() const { return Toxicity; }
 	USkeletalMeshComponent* GetFirstPersonArms() const { return FirstPersonArms; }
 	USkeletalMeshComponent* GetWorldBody() const { return ShadowMesh; }
 	const UMEInputConfig* GetInputConfig() const { return InputConfig; }
@@ -96,6 +98,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEMedkitComponent> Medkit;
+
+	/** Toxic air breathed (toxic zones), wears off in clean air. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEToxicityComponent> Toxicity;
 
 	/**
 	 * Extra meshes of the visible body (clothing...), following its pose.

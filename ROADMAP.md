@@ -72,7 +72,7 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [x] 4.1 Santé joueur (`UMEHealthComponent`), dégâts de chute, ressenti sans HUD (`UMEDamageFeedbackComponent` : flash + sursaut de vue au coup, vignette qui bat avec le cœur et couleurs délavées sous 50 %, grognements / cri de mort aléatoires), mort (vue qui s'écroule, fondu au noir) puis respawn ; commandes `MEDamage` / `MEHeal` / `MEKill`
 - [~] 4.2 Medkit sur Q (`UMEMedkitComponent`, objet d'inventaire `DA_Item_Medkit`) : arme rangée, injection, santé rendue sur 1,5 s ; geste « arme rangée » réutilisable (`PutAwayFor`, Holster / Draw du pack) ; **reste l'animation medkit et le son** → voir *Assets à trouver*
   - Panneau de debug (`AMEHUD`) : santé, inventaire, arme, mouvement ; **Show Debug** dans `BP_MEGameMode`, commande `MEDebug`
-- [ ] 4.3 Zones toxiques (volumes)
+- [x] 4.3 Zones toxiques (`AMEToxicZone` / `BP_ToxicZone`, densité réglable) : toxicité qui monte dans le gaz et retombe à l'air libre, dégâts au-dessus d'un seuil (sans grognement ni à-coup), toux de plus en plus fréquente, vision verdâtre / vignette / aberration ; la plus dense des zones superposées compte
 - [ ] 4.4 Masque à gaz : mettre / retirer, filtres avec chrono, essoufflement
 - [ ] 4.5 Visière : buée / fissures (post-process), essuyer la visière
 - [ ] 4.6 Montre au poignet : temps de filtre restant + indicateur de visibilité (branché en Phase 6)
@@ -139,6 +139,7 @@ On cherche d'abord du gratuit / pas cher (Fab, Epic, Freesound), licence vérifi
 | Animation medkit des bras FPS (main gauche, arme en main droite) ; en attendant : arme rangée (Holster) puis ressortie | 4.2 | `UMEMedkitComponent` + un clip par arme dans `DA_Weapon_*` | à trouver |
 | Son d'injection / de seringue | 4.2 | `BP_MECharacter` → Medkit → Inject Sound | à trouver |
 | Mesh de medkit (objet ramassable) | 4.2 | `DA_Item_Medkit` → World Mesh + un `BP_Pickup_Medkit` | à trouver |
+| Visuel du gaz : brouillard / particules (Local Fog Volume ou Niagara) | 4.3 | `BP_ToxicZone` → composant ajouté dans le BP | à trouver / à faire |
 | Toux, respiration sous masque (marche / course) | 4.4 | masque à gaz | déjà dans le projet : `External/HumanVocalizations/HumanMaleA` |
 
 ---

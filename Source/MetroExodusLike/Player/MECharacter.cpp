@@ -10,6 +10,7 @@
 #include "Combat/MEHealthComponent.h"
 #include "Player/MEDamageFeedbackComponent.h"
 #include "Survival/MEMedkitComponent.h"
+#include "Survival/METoxicityComponent.h"
 #include "Core/MEGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -78,6 +79,7 @@ AMECharacter::AMECharacter()
 	Health = CreateDefaultSubobject<UMEHealthComponent>(TEXT("Health"));
 	DamageFeedback = CreateDefaultSubobject<UMEDamageFeedbackComponent>(TEXT("DamageFeedback"));
 	Medkit = CreateDefaultSubobject<UMEMedkitComponent>(TEXT("Medkit"));
+	Toxicity = CreateDefaultSubobject<UMEToxicityComponent>(TEXT("Toxicity"));
 
 	// Heavy, grounded movement: slow acceleration, little air control
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
