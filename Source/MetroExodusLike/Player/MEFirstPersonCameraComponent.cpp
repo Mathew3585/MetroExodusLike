@@ -4,6 +4,30 @@
 #include "Weapons/MEWeaponData.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+namespace
+{
+	/**
+	 * Critically damped spring toward Target: no overshoot, and unlike an exponential interp the speed
+	 * ramps up and down, so a target that jumps (animation switching on start / stop) never snaps the view.
+	 */
+	FVector::FReal SmoothDamp(FVector::FReal Current, FVector::FReal& Velocity, FVector::FReal Target, float SmoothTime, float DeltaTime)
+	{
+		if (SmoothTime <= 0.f)
+		{
+			Velocity = 0.;
+			return Target;
+		}
+
+		const FVector::FReal Omega = 2. / SmoothTime;
+		const FVector::FReal X = Omega * DeltaTime;
+		const FVector::FReal Decay = 1. / (1. + X + 0.48 * X * X + 0.235 * X * X * X);
+		const FVector::FReal Change = Current - Target;
+		const FVector::FReal Temp = (Velocity + Omega * Change) * DeltaTime;
+		Velocity = (Velocity - Omega * Temp) * Decay;
+		return Target + (Change + Temp) * Decay;
+	}
+}
+
 UMEFirstPersonCameraComponent::UMEFirstPersonCameraComponent()
 {
 	// After physics so the head bone of the current frame's pose is available
@@ -70,12 +94,13 @@ void UMEFirstPersonCameraComponent::TickComponent(float DeltaTime, ELevelTick Ti
 
 FVector UMEFirstPersonCameraComponent::UpdatePlacement(float DeltaTime)
 {
-	const FVector ActorLocation = Character->GetActorLocation();
 	const FRotator ViewYaw(0.f, Character->GetControlRotation().Yaw, 0.f);
 
-	// Everything below is in view-yaw space, relative to the actor, so smoothing never lags behind movement
-	const FVector HeadLocal = ViewYaw.UnrotateVector(Character->GetMesh()->GetSocketLocation(HeadBoneName) - ActorLocation);
-	const FVector StableLocal(0.f, 0.f, Character->BaseEyeHeight);
+	// Everything below is in view-yaw space, relative to the feet of the body, so smoothing never lags behind movement.
+	// Not relative to the actor: crouching moves it by the capsule height change in one frame (the mesh is moved back).
+	const FVector Feet = Character->GetMesh()->GetComponentLocation();
+	const FVector HeadLocal = ViewYaw.UnrotateVector(Character->GetMesh()->GetSocketLocation(HeadBoneName) - Feet);
+	const FVector StableLocal(0.f, 0.f, Character->GetActorLocation().Z + Character->BaseEyeHeight - Feet.Z);
 
 	// In the air the camera mostly ignores the head, so the fall animation does not shake the view
 	const float TargetAirScale = Character->GetCharacterMovement()->IsFalling() ? InAirHeadFollow : 1.f;
@@ -87,17 +112,20 @@ FVector UMEFirstPersonCameraComponent::UpdatePlacement(float DeltaTime)
 	TargetLocal.Z = FMath::Lerp(StableLocal.Z, HeadLocal.Z, HeadFollowVertical * AirFollowScale);
 	TargetLocal += EyeOffset;
 
-	if (PlacementSmoothingSpeed > 0.f && bHasPlacement)
+	if (bHasPlacement)
 	{
-		SmoothedLocalOffset = FMath::VInterpTo(SmoothedLocalOffset, TargetLocal, DeltaTime, PlacementSmoothingSpeed);
+		SmoothedLocalOffset.X = SmoothDamp(SmoothedLocalOffset.X, SmoothedLocalVelocity.X, TargetLocal.X, HorizontalSmoothTime, DeltaTime);
+		SmoothedLocalOffset.Y = SmoothDamp(SmoothedLocalOffset.Y, SmoothedLocalVelocity.Y, TargetLocal.Y, HorizontalSmoothTime, DeltaTime);
+		SmoothedLocalOffset.Z = SmoothDamp(SmoothedLocalOffset.Z, SmoothedLocalVelocity.Z, TargetLocal.Z, VerticalSmoothTime, DeltaTime);
 	}
 	else
 	{
 		SmoothedLocalOffset = TargetLocal;
+		SmoothedLocalVelocity = FVector::ZeroVector;
 	}
 	bHasPlacement = true;
 
-	return ActorLocation + ViewYaw.RotateVector(SmoothedLocalOffset);
+	return Feet + ViewYaw.RotateVector(SmoothedLocalOffset);
 }
 
 void UMEFirstPersonCameraComponent::UpdateHeadBob(float DeltaTime, FVector& OutLocation, FRotator& OutRotation)

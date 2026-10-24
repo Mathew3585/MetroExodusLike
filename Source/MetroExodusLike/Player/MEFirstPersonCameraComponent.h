@@ -168,9 +168,16 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Camera|Placement", meta = (ClampMin = "0", ClampMax = "1"))
 	float HeadFollowVertical = 1.f;
 
-	/** Smooths the head motion. 0 = no smoothing, higher = follows faster. */
-	UPROPERTY(EditAnywhere, Category = "Camera|Placement", meta = (ClampMin = "0"))
-	float PlacementSmoothingSpeed = 0.f;
+	/**
+	 * Time for the view to catch up with the head forward/sideways (critically damped spring: soft start and stop).
+	 * Absorbs the body leaning in and out when starting and stopping. 0 = no smoothing.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Camera|Placement", meta = (ClampMin = "0", Units = "s"))
+	float HorizontalSmoothTime = 0.25f;
+
+	/** Same, up/down. Filters most of the step bounce of the body (the head bob does it) but keeps crouching. */
+	UPROPERTY(EditAnywhere, Category = "Camera|Placement", meta = (ClampMin = "0", Units = "s"))
+	float VerticalSmoothTime = 0.18f;
 
 	/** Head follow multiplier while in the air (the fall animation moves the head a lot). */
 	UPROPERTY(EditAnywhere, Category = "Camera|Placement", meta = (ClampMin = "0", ClampMax = "1"))
@@ -245,6 +252,7 @@ private:
 
 	// Placement
 	FVector SmoothedLocalOffset = FVector::ZeroVector;
+	FVector SmoothedLocalVelocity = FVector::ZeroVector;
 	bool bHasPlacement = false;
 	float AirFollowScale = 1.f;
 
