@@ -68,7 +68,8 @@ void AMEHUD::DrawDebugPanel()
 		Lines.Add(FString::Printf(TEXT("  Ammo    %d / %d  (reserve %d)"),
 			Weapon->GetAmmoInMagazine(), Weapon->GetAmmoInMagazine() + Weapon->GetRoomInMagazine(), Weapons->GetReserveAmmo()));
 		Lines.Add(FString::Printf(TEXT("  Mode    %s"), *UEnum::GetDisplayValueAsText(Weapon->GetFireMode()).ToString()));
-		Lines.Add(FString::Printf(TEXT("  Aim %.2f  Spread %.2f deg%s"), Weapons->GetAimAlpha(), Weapons->GetSpreadAngle(), Weapons->IsBusy() ? TEXT("  BUSY") : TEXT("")));
+		Lines.Add(FString::Printf(TEXT("  Aim %.2f  Spread %.2f deg%s"), Weapons->GetAimAlpha(), Weapons->GetSpreadAngle(),
+			Weapons->IsHolstered() ? TEXT("  HOLSTERED (safe zone)") : Weapons->IsBusy() ? TEXT("  BUSY") : TEXT("")));
 	}
 
 	const UCharacterMovementComponent* Movement = Character->GetCharacterMovement();

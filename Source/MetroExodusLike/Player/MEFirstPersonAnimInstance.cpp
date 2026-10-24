@@ -72,9 +72,10 @@ void UMEFirstPersonAnimInstance::PlayAction(UAnimSequenceBase* Animation, bool b
 		return;
 	}
 
-	// The dynamic montage is made for this play only: changing it affects nothing else
-	if (UAnimMontage* Montage = PlaySlotAnimationAsDynamicMontage(Animation, ActionSlot, 0.1f, 0.15f))
+	// The playing instance copied the montage's auto blend out when it started: change it there
+	UAnimMontage* Montage = PlaySlotAnimationAsDynamicMontage(Animation, ActionSlot, 0.1f, 0.15f);
+	if (FAnimMontageInstance* Instance = Montage ? GetActiveInstanceForMontage(Montage) : nullptr)
 	{
-		Montage->bEnableAutoBlendOut = !bHoldLastFrame;
+		Instance->bEnableAutoBlendOut = !bHoldLastFrame;
 	}
 }

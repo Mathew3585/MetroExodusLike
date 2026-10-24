@@ -60,6 +60,16 @@ public:
 	 */
 	float PutAwayFor(float HiddenTime);
 
+	/**
+	 * Safe zones (later scripted moments) keep the weapon put away while at least one asks for it.
+	 * The weapon goes away / comes back as soon as the current action (reload, draw...) is done.
+	 */
+	void AddHolsterRequest() { ++HolsterRequests; }
+	void RemoveHolsterRequest() { HolsterRequests = FMath::Max(0, HolsterRequests - 1); }
+
+	/** Put away for a while (safe zone): no weapon in view, no crosshair. */
+	bool IsHolstered() const { return bHolstered; }
+
 	/** Drawing, reloading, put away: no firing, no other action. */
 	bool IsBusy() const;
 
@@ -120,6 +130,7 @@ private:
 	 */
 	float PlayAction(const FMEWeaponAnimation& Action, bool bInterruptible = false, bool bHoldLastFrame = false);
 	void DrawBack();
+	void UpdateHolster();
 
 	/** Cuts an interruptible action still playing: arms back to the loops, weapon back to its rest pose, sound stopped. */
 	void InterruptAction();
@@ -193,4 +204,7 @@ private:
 	double BusyUntil = 0.0;
 	FTimerHandle ReloadTimer;
 	FTimerHandle DrawBackTimer;
+
+	int32 HolsterRequests = 0;
+	bool bHolstered = false;
 };

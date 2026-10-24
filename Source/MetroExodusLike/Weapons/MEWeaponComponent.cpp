@@ -35,6 +35,7 @@ void UMEWeaponComponent::TickComponent(float DeltaTime, ELevelTick TickType, FAc
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	UpdateHolster();
 	UpdateWallBlock(DeltaTime);
 	UpdateAiming(DeltaTime);
 	UpdateFiring();
@@ -292,7 +293,30 @@ void UMEWeaponComponent::UpdateRecoil(float DeltaTime)
 
 bool UMEWeaponComponent::IsBusy() const
 {
-	return GetWorld()->GetTimeSeconds() < BusyUntil;
+	return bHolstered || GetWorld()->GetTimeSeconds() < BusyUntil;
+}
+
+void UMEWeaponComponent::UpdateHolster()
+{
+	const UMEWeaponData* Data = GetWeaponData();
+	const bool bWantsHolstered = HolsterRequests > 0;
+	if (!Data || bWantsHolstered == bHolstered || GetWorld()->GetTimeSeconds() < BusyUntil)
+	{
+		return;
+	}
+
+	if (bWantsHolstered)
+	{
+		BurstShotsLeft = 0;
+		InterruptAction();
+		BusyUntil = GetWorld()->GetTimeSeconds() + PlayAction(Data->Holster, false, true);
+		bHolstered = true;
+	}
+	else
+	{
+		bHolstered = false;
+		BusyUntil = GetWorld()->GetTimeSeconds() + PlayAction(Data->Draw);
+	}
 }
 
 void UMEWeaponComponent::StartFire()
@@ -621,8 +645,9 @@ void UMEWeaponComponent::Equip(TSubclassOf<AMEWeapon> WeaponClass)
 float UMEWeaponComponent::PutAwayFor(float HiddenTime)
 {
 	const UMEWeaponData* Data = GetWeaponData();
-	if (!Data)
+	if (!Data || (bHolstered && GetWorld()->GetTimeSeconds() >= BusyUntil))
 	{
+		// Unarmed or already put away: the hands are free
 		return 0.f;
 	}
 	if (IsBusy())
@@ -641,10 +666,20 @@ float UMEWeaponComponent::PutAwayFor(float HiddenTime)
 
 void UMEWeaponComponent::DrawBack()
 {
-	if (const UMEWeaponData* Data = GetWeaponData())
+	const UMEWeaponData* Data = GetWeaponData();
+	if (!Data)
 	{
-		PlayAction(Data->Draw);
+		return;
 	}
+
+	// Walked into a safe zone during the gesture: the weapon simply stays away
+	if (HolsterRequests > 0)
+	{
+		bHolstered = true;
+		BusyUntil = GetWorld()->GetTimeSeconds();
+		return;
+	}
+	PlayAction(Data->Draw);
 }
 
 float UMEWeaponComponent::PlayAction(const FMEWeaponAnimation& Action, bool bInterruptible, bool bHoldLastFrame)

@@ -53,7 +53,8 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [x] 3.2 Bras FPS + AR-15 en main, montage de la démo du pack : pivot tête (suit la vue) → bras → caméra sur l'os `head` des bras ; animations du pack jouées telles quelles (pas de retarget), First Person Rendering, buste + jambes visibles, regard bas limité
 - [x] 3.2w Arme près d'un mur : sphère depuis la caméra, l'arme passe par les poses « Close To Wall » du pack au lieu de traverser
 - [x] 3.2a Bras de notre perso : bras MetaHuman (`SKM_Player_FPArms_Body/Outfit`) importés sur le squelette du pack (`SK_Mannequin`, os MH fusionnés), translation retargeting en Animation (proportions du pack), branchés dans `FirstPersonArms`
-- [ ] 3.2c Zones sûres (volume qui range l'arme)
+- [x] 3.2c Zones sûres (`AMESafeZone` / `BP_SafeZone`) : l'arme se range et reste rangée (pas de tir, visée, rechargement, réticule), ressort à la sortie ; medkit immédiat dedans
+  - `L_DevMap` = terrain de test greybox (`Dev/…` dans l'Outliner) : stand de tir 10/20/30 m, murs béton / métal / bois, zone sûre avec porte + interrupteur + disjoncteur, ramassage, tours de chute 3 / 6 / 12 m
 - [ ] 3.2b Gestes main gauche branchés sur les interactions (ramasser, porte, interrupteur)
 - [x] 3.3 Tir hitscan depuis la vue (auto / semi, cadence exacte), munitions (chargeur + réserve), tir à vide, rechargement tactique / à vide, sons du pack par action
 - [x] 3.4 Visée (ADS : animations du pack, zoom, souffle retenu), recul procédural (vue + bras), dispersion (hanche / visée / mouvement / saut), inspection ; tirs et inspection interrompus au changement de posture

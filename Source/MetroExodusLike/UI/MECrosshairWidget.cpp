@@ -64,8 +64,8 @@ void UMECrosshairWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 	const float TargetSpread = FMath::Clamp((SpreadTan - RestTan) * PixelsPerTan * Current->SpreadScale, 0.f, Current->MaxSpread);
 	Spread = FMath::FInterpTo(Spread, TargetSpread, InDeltaTime, Current->SmoothingSpeed);
 
-	// Gone before the sights reach the eye
-	const float Opacity = FMath::Clamp(1.f - Weapons->GetAimAlpha() * 1.5f, 0.f, 1.f);
+	// Gone before the sights reach the eye, and while the weapon is put away
+	const float Opacity = Weapons->IsHolstered() ? 0.f : FMath::Clamp(1.f - Weapons->GetAimAlpha() * 1.5f, 0.f, 1.f);
 
 	if (MaterialInstance)
 	{
