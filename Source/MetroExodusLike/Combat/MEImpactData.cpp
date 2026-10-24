@@ -2,6 +2,7 @@
 #include "Components/DecalComponent.h"
 #include "Engine/HitResult.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
@@ -35,7 +36,12 @@ void UMEImpactData::SpawnImpact(const UObject* WorldContext, const FHitResult& H
 
 	if (Impact.Effect)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(WorldContext, Impact.Effect, Hit.ImpactPoint, Normal.Rotation());
+		// Impact systems usually aim their debris with these user parameters rather than with the spawn rotation
+		if (UNiagaraComponent* Effect = UNiagaraFunctionLibrary::SpawnSystemAtLocation(WorldContext, Impact.Effect, Hit.ImpactPoint, Normal.Rotation()))
+		{
+			Effect->SetVariableVec3(TEXT("Hit Normal"), Normal);
+			Effect->SetVariableVec3(TEXT("Hit Direction"), (Hit.TraceEnd - Hit.TraceStart).GetSafeNormal());
+		}
 	}
 
 	if (Impact.Sound)
