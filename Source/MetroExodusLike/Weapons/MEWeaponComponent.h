@@ -118,6 +118,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Wall", meta = (ClampMin = "0", ClampMax = "1"))
 	float MaxWallBlockToFire = 0.3f;
 
+	/** Pulling the trigger on an empty magazine: after the click, the weapon reloads by itself (if there is ammo). */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Reload")
+	bool bAutoReload = true;
+
+	/** Time between the empty click and the automatic reload. */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Reload", meta = (ClampMin = "0", Units = "s", EditCondition = "bAutoReload"))
+	float AutoReloadDelay = 0.25f;
+
 	/** Draws the impacts (ammo and the rest: debug panel of AMEHUD). */
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons|Debug")
 	bool bDebugShots = true;
@@ -203,6 +211,7 @@ private:
 	/** Until this time the weapon is drawing / reloading. */
 	double BusyUntil = 0.0;
 	FTimerHandle ReloadTimer;
+	FTimerHandle AutoReloadTimer;
 	FTimerHandle DrawBackTimer;
 
 	int32 HolsterRequests = 0;

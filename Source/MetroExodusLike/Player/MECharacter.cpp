@@ -13,6 +13,8 @@
 #include "Survival/METoxicityComponent.h"
 #include "Survival/MEGasMaskComponent.h"
 #include "Survival/MEVisorComponent.h"
+#include "Survival/MEFlashlightComponent.h"
+#include "Player/MEAimAssistComponent.h"
 #include "Player/MEFootstepComponent.h"
 #include "Core/MEGameMode.h"
 #include "Kismet/GameplayStatics.h"
@@ -85,6 +87,14 @@ AMECharacter::AMECharacter()
 	Toxicity = CreateDefaultSubobject<UMEToxicityComponent>(TEXT("Toxicity"));
 	GasMask = CreateDefaultSubobject<UMEGasMaskComponent>(TEXT("GasMask"));
 	Visor = CreateDefaultSubobject<UMEVisorComponent>(TEXT("Visor"));
+
+	// On the forehead, above the eyes: the beam's shadows show instead of hiding behind what they fall from
+	Flashlight = CreateDefaultSubobject<UMEFlashlightComponent>(TEXT("Flashlight"));
+	Flashlight->SetupAttachment(FirstPersonPivot);
+	Flashlight->SetRelativeLocation(FVector(4.f, 0.f, 9.f));
+
+	AimAssist = CreateDefaultSubobject<UMEAimAssistComponent>(TEXT("AimAssist"));
+
 	Footsteps = CreateDefaultSubobject<UMEFootstepComponent>(TEXT("Footsteps"));
 
 	// Heavy, grounded movement: slow acceleration, little air control
@@ -177,6 +187,7 @@ void AMECharacter::Tick(float DeltaSeconds)
 		FallSpeed = FMath::Max(0.f, -GetCharacterMovement()->Velocity.Z);
 	}
 
+	UpdateGamepadLook(DeltaSeconds);
 	UpdateBodyRotation(DeltaSeconds);
 	UpdateLandingRecovery(DeltaSeconds);
 }
@@ -385,6 +396,11 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Input->BindAction(InputConfig->MoveAction, ETriggerEvent::Triggered, this, &AMECharacter::Move);
 	Input->BindAction(InputConfig->MoveAction, ETriggerEvent::Completed, this, &AMECharacter::StopMoving);
 	Input->BindAction(InputConfig->LookAction, ETriggerEvent::Triggered, this, &AMECharacter::Look);
+	if (InputConfig->LookGamepadAction)
+	{
+		Input->BindAction(InputConfig->LookGamepadAction, ETriggerEvent::Triggered, this, &AMECharacter::LookGamepad);
+		Input->BindAction(InputConfig->LookGamepadAction, ETriggerEvent::Completed, this, &AMECharacter::StopLookGamepad);
+	}
 	Input->BindAction(InputConfig->JumpAction, ETriggerEvent::Started, this, &AMECharacter::JumpPressed);
 	Input->BindAction(InputConfig->JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 	Input->BindAction(InputConfig->SprintAction, ETriggerEvent::Started, this, &AMECharacter::StartSprint);
@@ -416,6 +432,10 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	{
 		Input->BindAction(InputConfig->WipeVisorAction, ETriggerEvent::Started, this, &AMECharacter::WipeVisorPressed);
 	}
+	if (InputConfig->FlashlightAction)
+	{
+		Input->BindAction(InputConfig->FlashlightAction, ETriggerEvent::Started, this, &AMECharacter::FlashlightPressed);
+	}
 }
 
 bool AMECharacter::CanInteract() const
@@ -446,6 +466,10 @@ void AMECharacter::AimPressed()
 	// Aiming ends the sprint
 	bWantsToSprint = false;
 	Weapons->SetWantsToAim(true);
+	if (bUsingGamepad)
+	{
+		AimAssist->StartAimSnap();
+	}
 	UpdateMaxWalkSpeed();
 }
 
@@ -490,6 +514,11 @@ void AMECharacter::WipeVisorPressed()
 	Visor->Wipe();
 }
 
+void AMECharacter::FlashlightPressed()
+{
+	Flashlight->Toggle();
+}
+
 void AMECharacter::InteractReleased()
 {
 	Interaction->EndInteract();
@@ -522,8 +551,49 @@ void AMECharacter::Look(const FInputActionValue& Value)
 {
 	const FVector2D LookInput = Value.Get<FVector2D>();
 
+	bUsingGamepad = false;
 	AddControllerYawInput(LookInput.X);
 	AddControllerPitchInput(LookInput.Y);
+}
+
+void AMECharacter::LookGamepad(const FInputActionValue& Value)
+{
+	// The stick holds a turn rate: applied each frame in UpdateGamepadLook, whatever the frame rate
+	GamepadLookInput = Value.Get<FVector2D>();
+	bUsingGamepad = true;
+}
+
+void AMECharacter::StopLookGamepad()
+{
+	GamepadLookInput = FVector2D::ZeroVector;
+}
+
+void AMECharacter::UpdateGamepadLook(float DeltaSeconds)
+{
+	if (GamepadLookInput.IsNearlyZero())
+	{
+		return;
+	}
+
+	// Curve on the stick deflection, direction kept: small pushes for fine aiming, full push to turn around
+	const float Deflection = FMath::Min(GamepadLookInput.Size(), 1.f);
+	const FVector2D Look = GamepadLookInput.GetSafeNormal() * FMath::Pow(Deflection, GamepadResponseExponent);
+
+	const float AimScale = FMath::Lerp(1.f, GamepadAimLookScale, Weapons->GetAimAlpha());
+	const float Scale = AimScale * AimAssist->GetLookScale() * DeltaSeconds;
+	AddViewRotation(Look.X * GamepadYawRate * Scale, Look.Y * GamepadPitchRate * Scale * (bInvertGamepadPitch ? -1.f : 1.f));
+}
+
+void AMECharacter::AddViewRotation(float DeltaYaw, float DeltaPitch)
+{
+	// Straight into the controller's rotation input, in degrees (no input scales): the camera manager pitch limits apply
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController || PlayerController->IsLookInputIgnored())
+	{
+		return;
+	}
+	PlayerController->RotationInput.Yaw += DeltaYaw;
+	PlayerController->RotationInput.Pitch += DeltaPitch;
 }
 
 void AMECharacter::StartSprint()

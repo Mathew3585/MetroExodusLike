@@ -15,6 +15,8 @@ class UMEMedkitComponent;
 class UMEToxicityComponent;
 class UMEGasMaskComponent;
 class UMEVisorComponent;
+class UMEFlashlightComponent;
+class UMEAimAssistComponent;
 class UMEFootstepComponent;
 class AController;
 class UMEAnimInstance;
@@ -46,6 +48,8 @@ public:
 	UMEToxicityComponent* GetToxicity() const { return Toxicity; }
 	UMEGasMaskComponent* GetGasMask() const { return GasMask; }
 	UMEVisorComponent* GetVisor() const { return Visor; }
+	UMEFlashlightComponent* GetFlashlight() const { return Flashlight; }
+	UMEAimAssistComponent* GetAimAssist() const { return AimAssist; }
 	USkeletalMeshComponent* GetFirstPersonArms() const { return FirstPersonArms; }
 	USkeletalMeshComponent* GetWorldBody() const { return ShadowMesh; }
 	const UMEInputConfig* GetInputConfig() const { return InputConfig; }
@@ -53,6 +57,15 @@ public:
 	/** Upper-body pose of the bodies holding the current weapon (null = no weapon). */
 	void SetBodyWeaponPose(UAnimSequenceBase* Pose);
 	bool IsSprinting() const;
+
+	/** The last look input came from a gamepad stick (aim assist only helps the stick). */
+	bool IsUsingGamepad() const { return bUsingGamepad; }
+
+	/** The player is turning the stick or moving (aim assist tracking only helps then). */
+	bool HasAimInput() const { return !GamepadLookInput.IsNearlyZero() || !MoveInput.IsNearlyZero(); }
+
+	/** Turns the view by these angles (degrees, positive pitch = up), through the controller like the look input. */
+	void AddViewRotation(float DeltaYaw, float DeltaPitch);
 
 	/** True while absorbing a heavy landing: no movement, no jump. */
 	bool IsLandingStunned() const { return LandingStunRemaining > 0.f; }
@@ -116,6 +129,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEVisorComponent> Visor;
 
+	/** Head-mounted flashlight, on the head pivot: it follows the view, not the arm animations. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEFlashlightComponent> Flashlight;
+
+	/** Gamepad only: slows the stick over enemies, slides the view onto one when aiming. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEAimAssistComponent> AimAssist;
+
 	/** Footsteps read from the body's feet, landing sounds. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEFootstepComponent> Footsteps;
@@ -141,6 +162,26 @@ protected:
 	/** Lowest view pitch: below it the view would sink into the visible body. */
 	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (ClampMin = "-89", ClampMax = "0", Units = "Degrees"))
 	float MinViewPitch = -65.f;
+
+	// --- Gamepad look ---
+
+	/** Turn speed with the stick fully pushed. */
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Gamepad", meta = (ClampMin = "0", Units = "DegreesPerSecond"))
+	float GamepadYawRate = 200.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Gamepad", meta = (ClampMin = "0", Units = "DegreesPerSecond"))
+	float GamepadPitchRate = 140.f;
+
+	/** Response curve of the stick: 1 = linear, higher = finer near the center, fast at the edge. */
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Gamepad", meta = (ClampMin = "1", ClampMax = "4"))
+	float GamepadResponseExponent = 2.f;
+
+	/** Stick speed while aiming down sights (1 = same as from the hip). */
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Gamepad", meta = (ClampMin = "0.1", ClampMax = "1.5"))
+	float GamepadAimLookScale = 0.85f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Gamepad")
+	bool bInvertGamepadPitch = false;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Movement", meta = (ClampMin = "0", Units = "cm/s"))
 	float WalkSpeed = 350.f;
@@ -231,6 +272,9 @@ private:
 	void Move(const FInputActionValue& Value);
 	void StopMoving();
 	void Look(const FInputActionValue& Value);
+	void LookGamepad(const FInputActionValue& Value);
+	void StopLookGamepad();
+	void UpdateGamepadLook(float DeltaSeconds);
 	void StartSprint();
 	void StopSprint();
 	void JumpPressed();
@@ -249,6 +293,7 @@ private:
 	void GasMaskPressed();
 	void GasMaskReleased();
 	void WipeVisorPressed();
+	void FlashlightPressed();
 	void UpdateMaxWalkSpeed();
 	void UpdateBodyRotation(float DeltaSeconds);
 	void UpdateLandingRecovery(float DeltaSeconds);
@@ -261,6 +306,8 @@ private:
 	TArray<USkeletalMeshComponent*> AddMeshParts(USkeletalMeshComponent* Leader, const TArray<TObjectPtr<USkeletalMesh>>& Meshes);
 
 	FVector2D MoveInput = FVector2D::ZeroVector;
+	FVector2D GamepadLookInput = FVector2D::ZeroVector;
+	bool bUsingGamepad = false;
 	bool bWantsToSprint = false;
 	bool bIsTurningInPlace = false;
 

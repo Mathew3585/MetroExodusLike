@@ -8,6 +8,8 @@
 #include "Survival/METoxicityComponent.h"
 #include "Survival/MEGasMaskComponent.h"
 #include "Survival/MEVisorComponent.h"
+#include "Survival/MEFlashlightComponent.h"
+#include "Player/MEAimAssistComponent.h"
 #include "Weapons/MEWeapon.h"
 #include "Weapons/MEWeaponComponent.h"
 #include "Weapons/MEWeaponData.h"
@@ -114,6 +116,12 @@ void AMEHUD::DrawDebugPanel()
 	const UMEVisorComponent* Visor = Character->GetVisor();
 	Lines.Add(FString::Printf(TEXT("Visor     fog %.0f %%  cracks %d / %d%s"), Visor->GetFog() * 100.f, Visor->GetCracks(), Visor->GetMaxCracks(),
 		Visor->IsBroken() ? TEXT("  BROKEN") : TEXT("")));
+	Lines.Add(FString::Printf(TEXT("Flashlight %s"), Character->GetFlashlight()->IsOn() ? TEXT("ON") : TEXT("off")));
+	const UMEAimAssistComponent* AimAssist = Character->GetAimAssist();
+	const AActor* AssistTarget = AimAssist->GetCurrentTarget();
+	Lines.Add(FString::Printf(TEXT("Aim assist  %s  target %s  slow x%.2f%s%s"), Character->IsUsingGamepad() ? TEXT("gamepad") : TEXT("mouse"),
+		AssistTarget ? *AssistTarget->GetName() : TEXT("-"), AimAssist->GetLookScale(),
+		AimAssist->IsSnapping() ? TEXT("  SNAP") : TEXT(""), AimAssist->IsTracking() ? TEXT("  TRACKING") : TEXT("")));
 
 	Lines.Add(TEXT(""));
 	Lines.Add(TEXT("Inventory"));

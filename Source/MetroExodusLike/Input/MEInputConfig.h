@@ -23,8 +23,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
 	TObjectPtr<UInputAction> MoveAction;
 
+	/** Mouse look: a view delta per event. */
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
 	TObjectPtr<UInputAction> LookAction;
+
+	/** Stick look: a turn rate, applied each frame by the character (sensitivity, response curve, aim assist). */
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
+	TObjectPtr<UInputAction> LookGamepadAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
 	TObjectPtr<UInputAction> JumpAction;
@@ -63,4 +68,8 @@ public:
 	/** Wipe the gas mask visor. */
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
 	TObjectPtr<UInputAction> WipeVisorAction;
+
+	/** Head flashlight on / off. */
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
+	TObjectPtr<UInputAction> FlashlightAction;
 };

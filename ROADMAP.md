@@ -64,6 +64,8 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [x] 3.4e Weapon sway (inertie de l'arme, par DataAsset) : retard sur la vue, mouvement / strafe, saut et réception, respiration idle ; bras + arme bougent d'un bloc autour de la poignée (nœud `ME Arms Offset`, aussi pour le recul), caméra immobile ; réduit en visée
 - [x] 3.5 Cibles avec santé (`UMEHealthComponent`, réutilisable partout) + hit marker discret (images `T_HM_*`)
 - [~] 3.6 Impacts : decals + particules par surface faits (Niagara Examples Pack, gratuit) ; **reste les sons et le sang** → voir *Assets à trouver*
+- [x] 3.7 Recharge automatique : tirer chargeur vide = clic à vide puis recharge enchaînée (s'il reste des munitions, `bAutoReload` / délai réglables)
+- [x] 3.8 Manette : regard au stick en degrés par seconde (indépendant des FPS, courbe de réponse, axe vertical inversable), sensibilité en visée proche de la normale (`GamepadAimLookScale` 0,85) ; aim assist manette seulement (`UMEAimAssistComponent`) : ralenti sur un ennemi visible, accroche légère en épaulant (ennemi déjà presque dans le viseur, 3° max), suivi d'un ennemi qui bouge en visée quand le joueur bouge (stick ou déplacement) ; ligne de debug dans `MEDebug`
 
 **Fini quand :** tirer sur des cibles est satisfaisant.
 💰 **Achat d'assets :** pack bras FPS + animations d'armes (l'achat le plus important du projet).
@@ -103,7 +105,8 @@ alerte (prévient, fouille, alarme) → combat → recherche (redescend par l'al
 ## Phase 6 — Lumière et infiltration
 - [ ] 6.1 Calcul de visibilité du joueur (lumières proches + ombre)
 - [ ] 6.2 Indicateur sur la montre (LED)
-- [ ] 6.3 Lampe torche (batterie + recharge manuelle) et briquet
+- [x] 6.3a Lampe torche frontale de base (`UMEFlashlightComponent`, spot sur le front qui suit la vue) : F / clic du stick droit = allumer / éteindre, grésillement à l'allumage (durée, vitesse, coupures réglables) ; réglages de la lumière dans `BP_MECharacter` ; sons de clic prêts (→ *Assets à trouver*)
+- [ ] 6.3b Batterie de la lampe (s'use allumée, faiblit et clignote en fin de charge) + chargeur manuel, briquet
 - [ ] 6.4 Lumières destructibles / éteignables
 - [ ] 6.5 La perception IA utilise la visibilité du joueur
 - [ ] 6.6 Takedown silencieux (assommer / tuer) par derrière
@@ -166,6 +169,7 @@ On cherche d'abord du gratuit / pas cher (Fab, Epic, Freesound), licence vérifi
 | Animation d'examen d'un corps (accroupi, fouille) ; en attendant : accroupi | 5.7 | AnimBP ennemi | à trouver |
 | Animations de routines : fumer, assis, dormir, se chauffer | 5.7 | `AMEPatrolPath` → Routine | à trouver |
 | Mesh de lampe torche (ennemis, puis joueur en 6.3) | 5.7 | `BP_MEAICharacter` | à trouver |
+| Sons de clic de la lampe torche (allumer / éteindre) | 6.3a | `BP_MECharacter` → Flashlight → Switch On / Off Sound | à trouver |
 | Alarme de station : mesh (cloche / sirène) et son en boucle | 5.5 | `BP_Alarm` → Mesh / Alarm Sound | à trouver (cylindre en attendant) |
 
 ---

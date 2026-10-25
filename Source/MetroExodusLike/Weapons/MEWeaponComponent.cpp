@@ -379,6 +379,11 @@ void UMEWeaponComponent::UpdateFiring()
 				DryFire.Arms = nullptr;
 			}
 			PlayAction(DryFire, true);
+
+			if (bAutoReload && GetReserveAmmo() > 0)
+			{
+				GetWorld()->GetTimerManager().SetTimer(AutoReloadTimer, this, &UMEWeaponComponent::Reload, FMath::Max(AutoReloadDelay, 0.01f));
+			}
 		}
 		bFiredThisPress = true;
 		BurstShotsLeft = 0;
