@@ -74,7 +74,7 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
   - Panneau de debug (`AMEHUD`) : santé, inventaire, arme, mouvement ; **Show Debug** dans `BP_MEGameMode`, commande `MEDebug`
 - [x] 4.3 Zones toxiques (`AMEToxicZone` / `BP_ToxicZone`, densité réglable) : toxicité qui monte dans le gaz et retombe à l'air libre, dégâts au-dessus d'un seuil (sans grognement ni à-coup), toux de plus en plus fréquente, vision verdâtre / vignette / aberration ; la plus dense des zones superposées compte
 - [~] 4.4 Masque à gaz sur G (`UMEGasMaskComponent`) : tap = mettre / retirer (arme rangée, protège une fois mis), maintenu = changer de filtre (objet `DA_Item_Filter`, 3 min par filtre, usé seulement masque porté) ; respiration dans le masque calme / haletante selon l'essoufflement et en fin de filtre ; **reste l'animation et les sons du masque** → voir *Assets à trouver*
-- [ ] 4.5 Visière : buée / fissures (post-process), essuyer la visière
+- [~] 4.5 Visière (`UMEVisorComponent` + post-process `M_PP_Visor`) : contour du masque, buée qui suit l'essoufflement et la respiration, essuyage sur X, fissures aux coups (3e = visière brisée, le masque ne protège plus) ; **base en place, rendu du post-process à refaire** (textures → voir *Assets à trouver*)
 - [ ] 4.6 Montre au poignet : temps de filtre restant + indicateur de visibilité (branché en Phase 6)
 
 **Fini quand :** traverser une zone toxique est stressant et lisible sans HUD.
@@ -144,6 +144,9 @@ On cherche d'abord du gratuit / pas cher (Fab, Epic, Freesound), licence vérifi
 | Animation des bras FPS : mettre / retirer le masque, changer le filtre (main gauche) ; en attendant : arme rangée | 4.4 | `UMEGasMaskComponent` | à trouver |
 | Sons du masque : mettre, retirer, visser un filtre | 4.4 | `BP_MECharacter` → GasMask → Put On / Take Off / Change Filter Sound | à trouver |
 | Mesh de filtre (objet ramassable) | 4.4 | `DA_Item_Filter` → World Mesh (cylindre en attendant) | à trouver |
+| Textures de visière : fissures, buée, rayures (remplacent le procédural) | 4.5 | `M_PP_Visor` | à trouver (procédural en attendant) |
+| Sons de visière : fissure, visière brisée, essuyage | 4.5 | `BP_MECharacter` → Visor → Crack / Break / Wipe Sound | à trouver |
+| Animation des bras FPS : essuyer la visière (main gauche) ; en attendant : arme rangée | 4.5 | `UMEVisorComponent` | à trouver |
 
 ---
 

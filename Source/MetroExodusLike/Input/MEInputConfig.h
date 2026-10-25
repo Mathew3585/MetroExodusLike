@@ -59,4 +59,8 @@ public:
 	/** Tap: put on / take off the gas mask. Hold: change the filter. */
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
 	TObjectPtr<UInputAction> GasMaskAction;
+
+	/** Wipe the gas mask visor. */
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
+	TObjectPtr<UInputAction> WipeVisorAction;
 };

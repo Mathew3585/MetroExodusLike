@@ -132,6 +132,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Camera|Breathing")
 	float GetExertion() const { return Exertion; }
 
+	/** Breathing cycle, -1..1, in step with the breathing motion of the view. */
+	float GetBreath() const { return FMath::Sin(BreathPhase); }
+
 	/** Kicks the impact spring (explosions, damage...). Negative = down. */
 	UFUNCTION(BlueprintCallable, Category = "Camera|Impacts")
 	void AddImpactKick(float Kick) { SpringVelocity += Kick; }

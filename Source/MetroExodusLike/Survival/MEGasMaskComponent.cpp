@@ -6,6 +6,7 @@
 #include "Inventory/MEInventoryComponent.h"
 #include "Combat/MEHealthComponent.h"
 #include "Survival/METoxicityComponent.h"
+#include "Survival/MEVisorComponent.h"
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -137,7 +138,8 @@ void UMEGasMaskComponent::FinishChangeFilter()
 
 void UMEGasMaskComponent::UpdateProtection()
 {
-	Character->GetToxicity()->SetProtected(IsWorn() && FilterRemaining > 0.f);
+	// A broken visor lets the air in
+	Character->GetToxicity()->SetProtected(IsWorn() && FilterRemaining > 0.f && !Character->GetVisor()->IsBroken());
 }
 
 void UMEGasMaskComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

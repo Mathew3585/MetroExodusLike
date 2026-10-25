@@ -7,6 +7,7 @@
 #include "Survival/MEMedkitComponent.h"
 #include "Survival/METoxicityComponent.h"
 #include "Survival/MEGasMaskComponent.h"
+#include "Survival/MEVisorComponent.h"
 #include "Weapons/MEWeapon.h"
 #include "Weapons/MEWeaponComponent.h"
 #include "Weapons/MEWeaponData.h"
@@ -60,6 +61,9 @@ void AMEHUD::DrawDebugPanel()
 	const int32 FilterSeconds = FMath::CeilToInt(GasMask->GetFilterRemaining());
 	Lines.Add(FString::Printf(TEXT("Gas mask  %s  filter %d:%02d  (%d spare)"), MaskStates[static_cast<int32>(GasMask->GetState())],
 		FilterSeconds / 60, FilterSeconds % 60, GasMask->GetSpareFilters()));
+	const UMEVisorComponent* Visor = Character->GetVisor();
+	Lines.Add(FString::Printf(TEXT("Visor     fog %.0f %%  cracks %d / %d%s"), Visor->GetFog() * 100.f, Visor->GetCracks(), Visor->GetMaxCracks(),
+		Visor->IsBroken() ? TEXT("  BROKEN") : TEXT("")));
 
 	Lines.Add(TEXT(""));
 	Lines.Add(TEXT("Inventory"));

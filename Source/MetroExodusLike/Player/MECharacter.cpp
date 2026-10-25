@@ -12,6 +12,7 @@
 #include "Survival/MEMedkitComponent.h"
 #include "Survival/METoxicityComponent.h"
 #include "Survival/MEGasMaskComponent.h"
+#include "Survival/MEVisorComponent.h"
 #include "Player/MEFootstepComponent.h"
 #include "Core/MEGameMode.h"
 #include "Kismet/GameplayStatics.h"
@@ -83,6 +84,7 @@ AMECharacter::AMECharacter()
 	Medkit = CreateDefaultSubobject<UMEMedkitComponent>(TEXT("Medkit"));
 	Toxicity = CreateDefaultSubobject<UMEToxicityComponent>(TEXT("Toxicity"));
 	GasMask = CreateDefaultSubobject<UMEGasMaskComponent>(TEXT("GasMask"));
+	Visor = CreateDefaultSubobject<UMEVisorComponent>(TEXT("Visor"));
 	Footsteps = CreateDefaultSubobject<UMEFootstepComponent>(TEXT("Footsteps"));
 
 	// Heavy, grounded movement: slow acceleration, little air control
@@ -410,6 +412,10 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		Input->BindAction(InputConfig->GasMaskAction, ETriggerEvent::Started, this, &AMECharacter::GasMaskPressed);
 		Input->BindAction(InputConfig->GasMaskAction, ETriggerEvent::Completed, this, &AMECharacter::GasMaskReleased);
 	}
+	if (InputConfig->WipeVisorAction)
+	{
+		Input->BindAction(InputConfig->WipeVisorAction, ETriggerEvent::Started, this, &AMECharacter::WipeVisorPressed);
+	}
 }
 
 bool AMECharacter::CanInteract() const
@@ -477,6 +483,11 @@ void AMECharacter::GasMaskPressed()
 void AMECharacter::GasMaskReleased()
 {
 	GasMask->MaskReleased();
+}
+
+void AMECharacter::WipeVisorPressed()
+{
+	Visor->Wipe();
 }
 
 void AMECharacter::InteractReleased()
