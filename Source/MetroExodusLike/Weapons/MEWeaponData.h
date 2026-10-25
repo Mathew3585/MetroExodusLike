@@ -100,6 +100,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
 	TObjectPtr<USoundBase> FireSound;
 
+	/** How far enemies hear a shot (share of their hearing range, above 1 = beyond it). */
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds", meta = (ClampMin = "0"))
+	float ShotNoise = 2.f;
+
 	// --- UI ---
 
 	/** Hip-fire crosshair for this weapon only. None = the player's default crosshair. */

@@ -65,6 +65,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Shell|Sound", meta = (ClampMin = "0"))
 	int32 MaxImpactSounds = 2;
 
+	/** How far enemies hear it hit the ground (share of their hearing range). */
+	UPROPERTY(EditDefaultsOnly, Category = "Shell|Sound", meta = (ClampMin = "0"))
+	float ImpactNoise = 0.1f;
+
 	/** Keeps fast bounces from playing the sound several times in a row. */
 	UPROPERTY(EditDefaultsOnly, Category = "Shell|Sound", meta = (ClampMin = "0", Units = "s"))
 	float MinTimeBetweenImpactSounds = 0.1f;

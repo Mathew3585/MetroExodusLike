@@ -33,5 +33,8 @@ protected:
 private:
 	void DrawDebugPanel();
 
+	/** Detection gauge above each enemy, "?" when it just heard something. */
+	void DrawEnemyPerception();
+
 	bool bShowDebugPanel = false;
 };

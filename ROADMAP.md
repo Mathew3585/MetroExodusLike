@@ -86,7 +86,7 @@ un bruit attire l'ennemi vers l'endroit sans révéler le joueur. États : calme
 alerte (prévient, fouille, alarme) → combat → recherche (redescend par l'alerte, jamais directement au calme).
 
 - [x] 5.1 `AMEAICharacter` (santé, corps MetaHuman, arme du monde) + `AMEAIController` (StateTree) ; chemins de patrouille `AMEPatrolPath` (spline, réglages par point : attente, regard, routine ; boucle / aller-retour ; poste fixe = 1 point) ; StateTree `ST_Enemy_Human` généré par `UMEEditorAILibrary` ; **provisoire** : corps d'animation MetaHuman invisible + Manny visible qui recopie la pose (`ABP_Enemy_Manny`, retarget) → un seul corps Manny dès qu'on a des animations ennemies
-- [ ] 5.2 Perception : vue avec jauge de détection, ouïe (pas selon l'allure via `UMEFootstepComponent`, tirs, douilles, portes) ; debug de la jauge
+- [x] 5.2 Perception (`AMEAIController`) : vue en cône + jauge de détection (distance, côté du cône, accroupi, immobile, sprint ; tient 2 s puis redescend), ouïe via `MENoise` (pas selon l'allure, réceptions, tirs, douilles, portes ; force réglable par source) ; debug : jauge au-dessus des ennemis + « ? bruit »
 - [ ] 5.3 États calme → suspicion → alerte → recherche ; remarque les changements (lumière éteinte, porte ouverte)
 - [ ] 5.4 Combat : couverts (EQS), rafales, tickets d'attaque (1-2 tireurs à la fois), contournement, débusquer (suppression, grenade)
 - [ ] 5.5 Groupe : alerte transmise à la voix (portée + délai), voix de combat (barks), appel au collègue qui ne répond pas, alarme de la station

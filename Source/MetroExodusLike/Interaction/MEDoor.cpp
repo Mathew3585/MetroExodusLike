@@ -1,5 +1,6 @@
 #include "Interaction/MEDoor.h"
 #include "Player/MECharacter.h"
+#include "AI/MENoise.h"
 #include "Components/StaticMeshComponent.h"
 
 #define LOCTEXT_NAMESPACE "MEDoor"
@@ -57,6 +58,7 @@ void AMEDoor::Interact(AMECharacter* Interactor)
 		TargetAngle = 0.f;
 	}
 
+	MENoise::Report(Interactor, GetActorLocation(), Noise, MENoise::Door);
 	SetActorTickEnabled(true);
 }
 

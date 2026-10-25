@@ -41,6 +41,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Door")
 	bool bLocked = false;
 
+	/** How far enemies hear it open or close (share of their hearing range). */
+	UPROPERTY(EditAnywhere, Category = "Door", meta = (ClampMin = "0"))
+	float Noise = 0.3f;
+
 private:
 	bool bIsOpen = false;
 	float CurrentAngle = 0.f;

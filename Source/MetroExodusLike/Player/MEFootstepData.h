@@ -40,6 +40,20 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Volume", meta = (ClampMin = "0"))
 	float LandingVolume = 1.2f;
 
+	// How far enemies hear a step, per gait (share of their hearing range: 0.25 = a quarter of it)
+	UPROPERTY(EditDefaultsOnly, Category = "Noise", meta = (ClampMin = "0"))
+	float WalkNoise = 0.25f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Noise", meta = (ClampMin = "0"))
+	float SprintNoise = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Noise", meta = (ClampMin = "0"))
+	float CrouchNoise = 0.05f;
+
+	/** Heavy landing (lighter landings are quieter). */
+	UPROPERTY(EditDefaultsOnly, Category = "Noise", meta = (ClampMin = "0"))
+	float LandingNoise = 0.6f;
+
 	/** Random pitch, either way (0.05 = +/- 5%). */
 	UPROPERTY(EditDefaultsOnly, Category = "Volume", meta = (ClampMin = "0", ClampMax = "0.5"))
 	float PitchVariation = 0.05f;

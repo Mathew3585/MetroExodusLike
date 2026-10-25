@@ -36,6 +36,48 @@ void AMEHUD::DrawHUD()
 	if (bShowDebugPanel)
 	{
 		DrawDebugPanel();
+		DrawEnemyPerception();
+	}
+}
+
+void AMEHUD::DrawEnemyPerception()
+{
+	if (!Canvas)
+	{
+		return;
+	}
+
+	const UFont* Font = GEngine->GetSmallFont();
+	for (TActorIterator<AMEAICharacter> It(GetWorld()); It; ++It)
+	{
+		const AMEAIController* Brain = Cast<AMEAIController>(It->GetController());
+		if (!Brain)
+		{
+			continue;
+		}
+
+		const FVector Screen = Canvas->Project(It->GetActorLocation() + FVector(0.f, 0.f, 120.f));
+		if (Screen.Z <= 0.f)
+		{
+			// Behind the view
+			continue;
+		}
+
+		// White while unsure, red once spotted
+		const float Width = 60.f;
+		const float Height = 6.f;
+		const float Detection = Brain->GetDetection();
+		const FLinearColor Fill = Detection >= 1.f ? FLinearColor::Red : FLinearColor::LerpUsingHSV(FLinearColor::White, FLinearColor(1.f, 0.5f, 0.f), Detection);
+		DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.6f), Screen.X - Width * 0.5f, Screen.Y, Width, Height);
+		DrawRect(Fill, Screen.X - Width * 0.5f, Screen.Y, Width * Detection, Height);
+
+		FVector NoiseLocation;
+		FName NoiseTag;
+		float NoiseAge;
+		if (Brain->GetLastNoise(NoiseLocation, NoiseTag, NoiseAge) && NoiseAge < 3.f)
+		{
+			DrawText(FString::Printf(TEXT("? %s"), *NoiseTag.ToString()), FLinearColor::Yellow, Screen.X - Width * 0.5f, Screen.Y - 16.f, const_cast<UFont*>(Font), TextScale);
+		}
 	}
 }
 
@@ -117,6 +159,15 @@ void AMEHUD::DrawDebugPanel()
 		Lines.Add(FString::Printf(TEXT("Enemy     %.0f m  %.0f hp  %s%s"), NearestDistance / 100.f, Nearest->GetHealth()->GetHealth(),
 			Brain ? AlertStates[static_cast<int32>(Brain->GetAlertState())] : TEXT("no brain"),
 			Brain ? *(TEXT(", ") + Brain->GetActivityDescription()) : TEXT("")));
+		if (Brain)
+		{
+			FVector NoiseLocation;
+			FName NoiseTag;
+			float NoiseAge;
+			const bool bHeard = Brain->GetLastNoise(NoiseLocation, NoiseTag, NoiseAge);
+			Lines.Add(FString::Printf(TEXT("  sees you %s  detection %.0f %%  heard %s"), Brain->CanSeePlayer() ? TEXT("YES") : TEXT("no"), Brain->GetDetection() * 100.f,
+				bHeard ? *FString::Printf(TEXT("%s %.1f s ago"), *NoiseTag.ToString(), NoiseAge) : TEXT("nothing")));
+		}
 	}
 
 	// Dark box behind the text so it reads on any background

@@ -48,7 +48,7 @@ protected:
 	float MinStepInterval = 0.2f;
 
 private:
-	void PlayStep(const FVector& FootLocation, float Volume);
+	void PlayStep(const FVector& FootLocation, float Volume, float Noise, FName NoiseTag);
 
 	UPROPERTY(Transient)
 	TObjectPtr<ACharacter> Character;

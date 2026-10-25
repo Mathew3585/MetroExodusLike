@@ -19,6 +19,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/ArrowComponent.h"
 #include "Components/AudioComponent.h"
+#include "AI/MENoise.h"
 
 UMEWeaponComponent::UMEWeaponComponent()
 {
@@ -402,6 +403,7 @@ void UMEWeaponComponent::FireShot()
 	{
 		UGameplayStatics::SpawnSoundAttached(Data->FireSound, Weapon->GetMesh());
 	}
+	MENoise::Report(Character, Weapon->GetActorLocation(), Data->ShotNoise, MENoise::Gunshot);
 
 	const UMEFirstPersonCameraComponent* Camera = Character->GetFirstPersonCamera();
 	EjectShell();

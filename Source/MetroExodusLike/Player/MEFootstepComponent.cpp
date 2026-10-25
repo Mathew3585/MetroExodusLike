@@ -1,6 +1,7 @@
 #include "Player/MEFootstepComponent.h"
 #include "Player/MEFootstepData.h"
 #include "Player/MECharacter.h"
+#include "AI/MENoise.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -43,9 +44,13 @@ void UMEFootstepComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 	}
 
 	const AMECharacter* MECharacter = Cast<AMECharacter>(Character);
+	const bool bSprinting = MECharacter && MECharacter->IsSprinting();
 	const float Volume = Character->bIsCrouched ? FootstepData->CrouchVolume
-		: MECharacter && MECharacter->IsSprinting() ? FootstepData->SprintVolume
+		: bSprinting ? FootstepData->SprintVolume
 		: FootstepData->WalkVolume;
+	const float Noise = Character->bIsCrouched ? FootstepData->CrouchNoise
+		: bSprinting ? FootstepData->SprintNoise
+		: FootstepData->WalkNoise;
 
 	const float GroundZ = Character->GetActorLocation().Z - Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	const double Now = GetWorld()->GetTimeSeconds();
@@ -65,7 +70,7 @@ void UMEFootstepComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 			if (Now - Foot.LastStepTime >= MinStepInterval)
 			{
 				Foot.LastStepTime = Now;
-				PlayStep(FootLocation, Volume);
+				PlayStep(FootLocation, Volume, Noise, MENoise::Footstep);
 			}
 		}
 	}
@@ -79,10 +84,11 @@ void UMEFootstepComponent::PlayLanding(float Strength)
 	}
 
 	const FVector FeetLocation = Character->GetActorLocation() - FVector(0.f, 0.f, Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
-	PlayStep(FeetLocation, FootstepData->LandingVolume * FMath::Clamp(Strength, 0.3f, 1.5f));
+	const float Scale = FMath::Clamp(Strength, 0.3f, 1.5f);
+	PlayStep(FeetLocation, FootstepData->LandingVolume * Scale, FootstepData->LandingNoise * Scale, MENoise::Landing);
 }
 
-void UMEFootstepComponent::PlayStep(const FVector& FootLocation, float Volume)
+void UMEFootstepComponent::PlayStep(const FVector& FootLocation, float Volume, float Noise, FName NoiseTag)
 {
 	// What is under the foot decides the sound
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(Footstep), false, Character);
@@ -95,4 +101,5 @@ void UMEFootstepComponent::PlayStep(const FVector& FootLocation, float Volume)
 		const float Pitch = 1.f + FMath::FRandRange(-FootstepData->PitchVariation, FootstepData->PitchVariation);
 		UGameplayStatics::PlaySoundAtLocation(this, Sound, Hit.bBlockingHit ? Hit.ImpactPoint : FootLocation, Volume, Pitch);
 	}
+	MENoise::Report(Character, FootLocation, Noise, NoiseTag);
 }

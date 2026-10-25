@@ -1,4 +1,5 @@
 #include "Weapons/MEShellCasing.h"
+#include "AI/MENoise.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
@@ -119,7 +120,7 @@ void AMEShellCasing::BeginPlay()
 
 void AMEShellCasing::HandleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (!ImpactSound || !bActive || ImpactSoundsPlayed >= MaxImpactSounds)
+	if (!bActive || ImpactSoundsPlayed >= MaxImpactSounds)
 	{
 		return;
 	}
@@ -136,7 +137,11 @@ void AMEShellCasing::HandleHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 		return;
 	}
 
-	UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, Hit.ImpactPoint);
+	if (ImpactSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, Hit.ImpactPoint);
+	}
+	MENoise::Report(GetOwner(), Hit.ImpactPoint, ImpactNoise, MENoise::Casing);
 	++ImpactSoundsPlayed;
 	LastImpactSoundTime = Now;
 }
