@@ -1,24 +1,30 @@
 #include "AI/MEStateTreeTasks.h"
-#include "AI/MEAIController.h"
 #include "StateTreeExecutionContext.h"
 
-EStateTreeRunStatus FMEStateTreeTask_Patrol::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+EStateTreeRunStatus FMEStateTreeTask_AlertActivity::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
-	AMEAIController* Controller = Cast<AMEAIController>(Context.GetInstanceData(*this).AIController);
+	const FInstanceDataType& Data = Context.GetInstanceData(*this);
+	AMEAIController* Controller = Cast<AMEAIController>(Data.AIController);
 	if (!Controller)
 	{
 		return EStateTreeRunStatus::Failed;
 	}
-	Controller->SetAlertState(EMEAlertState::Calm);
-	Controller->StartPatrol();
-	// Patrolling never ends by itself: the tree leaves the state when something happens
+	Controller->BeginActivity(Data.Activity);
+	// Never ends by itself: the tree leaves the state when the alert state changes
 	return EStateTreeRunStatus::Running;
 }
 
-void FMEStateTreeTask_Patrol::ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+void FMEStateTreeTask_AlertActivity::ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	if (AMEAIController* Controller = Cast<AMEAIController>(Context.GetInstanceData(*this).AIController))
 	{
-		Controller->StopPatrol();
+		Controller->EndActivity();
 	}
+}
+
+bool FMEStateTreeCondition_AlertState::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const FInstanceDataType& Data = Context.GetInstanceData(*this);
+	const AMEAIController* Controller = Cast<AMEAIController>(Data.AIController);
+	return Controller && Controller->GetAlertState() == Data.State;
 }

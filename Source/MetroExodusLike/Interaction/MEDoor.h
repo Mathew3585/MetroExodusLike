@@ -23,6 +23,8 @@ public:
 	virtual FMEInteractionInfo GetInteractionInfo(const AMECharacter* Interactor) const override;
 	virtual void Interact(AMECharacter* Interactor) override;
 
+	bool IsOpen() const { return bIsOpen; }
+
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<USceneComponent> Hinge;

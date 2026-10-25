@@ -6,6 +6,7 @@
 #include "Weapons/MEWeapon.h"
 #include "Weapons/MEWeaponData.h"
 #include "Components/CapsuleComponent.h"
+#include "EngineUtils.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -127,6 +128,17 @@ void AMEAICharacter::EquipStartingWeapon()
 
 void AMEAICharacter::HandleDeath(AController* Killer)
 {
+	// Those who see it fall know something is wrong
+	const FVector BodyLocation = GetActorLocation();
+	for (TActorIterator<AMEAICharacter> It(GetWorld()); It; ++It)
+	{
+		AMEAIController* Other = *It != this ? Cast<AMEAIController>(It->GetController()) : nullptr;
+		if (Other && Other->CanSeeLocation(BodyLocation, this))
+		{
+			Other->NotifyAllyDown(BodyLocation);
+		}
+	}
+
 	// The brain stops; the body drops (a proper ragdoll and loot come later)
 	if (AController* Brain = GetController())
 	{

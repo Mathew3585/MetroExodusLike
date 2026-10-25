@@ -43,11 +43,30 @@ UStateTree* UMEEditorAILibrary::BuildEnemyStateTree(const FString& PackagePath, 
 	SetSchemaClass(Data->Schema, TEXT("AIControllerClass"), ControllerClass);
 	SetSchemaClass(Data->Schema, TEXT("ContextActorClass"), ActorClass);
 
-	// Rebuilt from scratch: the layout lives here, the tree asset is only its result
+	// Rebuilt from scratch: the layout lives here, the tree asset is only its result.
+	// One state per alert state; each one switches to another as soon as the controller's alert state says so.
 	Data->SubTrees.Reset();
 	UStateTreeState& Root = Data->AddRootState();
-	UStateTreeState& Calm = Root.AddChildState(TEXT("Calm"));
-	Calm.AddTask<FMEStateTreeTask_Patrol>();
+	const UEnum* AlertEnum = StaticEnum<EMEAlertState>();
+	TArray<TPair<EMEAlertState, UStateTreeState*>> States;
+	for (int32 Index = 0; Index < AlertEnum->NumEnums() - 1; ++Index)
+	{
+		const EMEAlertState Alert = static_cast<EMEAlertState>(AlertEnum->GetValueByIndex(Index));
+		UStateTreeState& State = Root.AddChildState(FName(AlertEnum->GetNameStringByIndex(Index)));
+		State.AddTask<FMEStateTreeTask_AlertActivity>().GetInstanceData().Activity = Alert;
+		States.Emplace(Alert, &State);
+	}
+	for (const TPair<EMEAlertState, UStateTreeState*>& From : States)
+	{
+		for (const TPair<EMEAlertState, UStateTreeState*>& To : States)
+		{
+			if (From.Key != To.Key)
+			{
+				FStateTreeTransition& Transition = From.Value->AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, To.Value);
+				Transition.AddConditionWithOuter<FMEStateTreeCondition_AlertState>(From.Value).GetInstanceData().State = To.Key;
+			}
+		}
+	}
 
 	FStateTreeCompilerLog Log;
 	const bool bCompiled = UStateTreeEditingSubsystem::CompileStateTree(Tree, Log);

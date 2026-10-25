@@ -10,21 +10,29 @@ class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
 class UAISenseConfig_Hearing;
 class AMEAICharacter;
+class AMEDoor;
 
-/** How aware of the player an enemy is. The StateTree states set it; perception and barks read it. */
+/** How aware of the player an enemy is. The controller decides it from its senses; the StateTree follows it. */
 UENUM()
 enum class EMEAlertState : uint8
 {
+	/** Patrolling, or at its post. */
 	Calm,
+	/** Saw or heard something: stops, looks, goes to check, slowly. */
 	Suspicious,
+	/** Knows someone is there (spotted, shot at, a gunshot, a body): hurries to where it happened. */
 	Alerted,
+	/** Fighting the player (5.4). */
 	Combat,
+	/** Lost the trail: searches around the last known place, then calms down, wary for a while. */
 	Searching
 };
 
 /**
- * Brain of a human enemy. The StateTree (ST_Enemy_Human) picks what to do; the actions themselves
- * (patrolling, later investigating, taking cover...) are written here and called by its C++ tasks.
+ * Brain of a human enemy.
+ * - Its senses fill a detection gauge and note noises (5.2); from them it decides the alert state.
+ * - ST_Enemy_Human has one state per alert state and switches to the matching one; each runs an
+ *   activity written here (patrol, investigate, hurry, search) through its C++ task.
  */
 UCLASS()
 class METROEXODUSLIKE_API AMEAIController : public AAIController
@@ -46,11 +54,16 @@ public:
 
 	/** Last noise heard: where, what (MENoise tags) and how long ago. False if none yet. */
 	bool GetLastNoise(FVector& OutLocation, FName& OutTag, float& OutAge) const;
-	void SetAlertState(EMEAlertState NewState) { AlertState = NewState; }
 
-	/** Walks the pawn's patrol path, waiting at its points. Without a path, stands still. */
-	void StartPatrol();
-	void StopPatrol();
+	/** True if a point is in its vision cone, in range and not behind a wall. */
+	bool CanSeeLocation(const FVector& Location, const AActor* Target = nullptr) const;
+
+	/** Another enemy died there, in its sight: it knows something is wrong. */
+	void NotifyAllyDown(const FVector& Location);
+
+	/** Starts / stops what it does in an alert state (called by the StateTree task of that state). */
+	void BeginActivity(EMEAlertState Activity);
+	void EndActivity();
 
 	/** What it is doing right now, for the debug panel. */
 	FString GetActivityDescription() const;
@@ -117,6 +130,50 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Perception|Hearing", meta = (ClampMin = "0", Units = "cm"))
 	float HearingRange = 3000.f;
 
+	// --- Alert ---
+
+	/** Seeing the player fills the gauge past this: suspicious. Full: alerted. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", ClampMax = "1"))
+	float SuspicionThreshold = 0.35f;
+
+	/** Suspicious: stands and stares this long before going to check. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "s"))
+	float ReactionTime = 1.f;
+
+	/** Looks around this long at the place it checks. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "s"))
+	float LookAroundTime = 4.f;
+
+	/** Back to calm after a scare: detection faster for this long. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "s"))
+	float WaryTime = 60.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "1"))
+	float WaryDetectionScale = 1.5f;
+
+	/** Moving speeds: checking something, hurrying when alerted, searching. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "cm/s"))
+	float InvestigateSpeed = 130.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "cm/s"))
+	float AlertSpeed = 380.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "cm/s"))
+	float SearchSpeed = 220.f;
+
+	/** Searching: places checked around the last known one, within this radius. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert|Search", meta = (ClampMin = "1"))
+	int32 SearchPoints = 4;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Alert|Search", meta = (ClampMin = "0", Units = "cm"))
+	float SearchRadius = 900.f;
+
+	/** Looks around this long at each searched place. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert|Search", meta = (ClampMin = "0", Units = "s"))
+	float SearchLookTime = 2.f;
+
+	// --- Patrol ---
+
 	/** Stops this close to a patrol point. */
 	UPROPERTY(EditDefaultsOnly, Category = "Patrol", meta = (ClampMin = "0", Units = "cm"))
 	float PatrolAcceptanceRadius = 40.f;
@@ -129,11 +186,39 @@ private:
 	UFUNCTION()
 	void HandlePerception(AActor* Actor, FAIStimulus Stimulus);
 
+	void HandleHealthChanged(float Health, float Delta, AController* DamageInstigator);
+
 	void UpdateDetection(float DeltaSeconds);
 
+	/** Decides the alert state from what it sensed since last frame. */
+	void UpdateAlert();
+	void BecomeSuspicious(const FVector& Location);
+	void RaiseAlert(const FVector& Location);
+	void CalmDown();
+	void SetAlertState(EMEAlertState NewState);
+
+	/** Doors seen open that were closed (or the opposite) make it suspicious. */
+	void CheckDoors();
+
+	// Activities
+	void StartPatrol();
+	void StopPatrol();
 	void MoveToPatrolPoint();
 	void ArriveAtPatrolPoint();
 	void NextPatrolPoint();
+
+	void StartInvestigating();
+	void GoCheck();
+	void StartHurrying();
+	void StartSearching();
+	void NextSearchPoint();
+	void LookAround(float Duration);
+	void UpdateLookAround();
+	void FinishLookAround();
+
+	/** Moves to the alert target; reaching it (or failing to) calls ArriveAtTarget. */
+	void MoveToTarget(float AcceptanceRadius);
+	void ArriveAtTarget();
 
 	/** Turns the body toward where it walks, or toward a location. */
 	void FaceMovement();
@@ -142,14 +227,18 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<AMEAICharacter> Enemy;
 
-	EMEAlertState AlertState = EMEAlertState::Calm;
-
 	UPROPERTY()
 	TObjectPtr<UAISenseConfig_Sight> SightConfig;
 
 	UPROPERTY()
 	TObjectPtr<UAISenseConfig_Hearing> HearingConfig;
 
+	EMEAlertState AlertState = EMEAlertState::Calm;
+	/** Where the alert is about: what it saw, heard, or where the shot came from. */
+	FVector AlertTarget = FVector::ZeroVector;
+	double WaryUntil = -1.0;
+
+	// Perception
 	TWeakObjectPtr<APawn> SeenPlayer;
 	float Detection = 0.f;
 	double LastSeenTime = -1.0;
@@ -159,7 +248,35 @@ private:
 	FVector LastNoiseLocation = FVector::ZeroVector;
 	FName LastNoiseTag;
 
+	// Events since last frame, handled by UpdateAlert
+	bool bNewNoise = false;
+	bool bHurt = false;
+	FVector HurtFrom = FVector::ZeroVector;
+	bool bSawAllyDown = false;
+	FVector AllyDownLocation = FVector::ZeroVector;
+
+	TMap<TWeakObjectPtr<AMEDoor>, bool> KnownDoors;
+	float DoorCheckTimer = 0.f;
+
+	// Activity
+	EMEAlertState Activity = EMEAlertState::Calm;
+	bool bActivityRunning = false;
+	bool bMoving = false;
+	FVector MoveGoal = FVector::ZeroVector;
+	FTimerHandle ActivityTimer;
+
+	bool bLookingAround = false;
+	double LookAroundEnd = 0.0;
+	double NextLookTurn = 0.0;
+	int32 LookTurns = 0;
+	FRotator LookBase = FRotator::ZeroRotator;
+
+	int32 SearchPointsLeft = 0;
+	FVector SearchCenter = FVector::ZeroVector;
+
 	bool bPatrolling = false;
+	/** The first patrol starts at the point set in the level; later ones resume at the nearest. */
+	bool bHasPatrolled = false;
 	bool bWaiting = false;
 	bool bPatrolForward = true;
 	int32 PatrolIndex = 0;
