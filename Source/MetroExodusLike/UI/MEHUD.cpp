@@ -68,6 +68,11 @@ void AMEHUD::DrawEnemyPerception()
 		const float Height = 6.f;
 		const float Detection = Brain->GetDetection();
 		const FLinearColor Fill = Detection >= 1.f ? FLinearColor::Red : FLinearColor::LerpUsingHSV(FLinearColor::White, FLinearColor(1.f, 0.5f, 0.f), Detection);
+		// Yellow frame: on edge (wary or worse)
+		if (Brain->GetAlertState() != EMEAlertState::Calm)
+		{
+			DrawRect(FLinearColor(1.f, 0.85f, 0.f, 0.9f), Screen.X - Width * 0.5f - 2.f, Screen.Y - 2.f, Width + 4.f, Height + 4.f);
+		}
 		DrawRect(FLinearColor(0.f, 0.f, 0.f, 0.6f), Screen.X - Width * 0.5f, Screen.Y, Width, Height);
 		DrawRect(Fill, Screen.X - Width * 0.5f, Screen.Y, Width * Detection, Height);
 
@@ -154,7 +159,7 @@ void AMEHUD::DrawDebugPanel()
 	}
 	if (Nearest)
 	{
-		static const TCHAR* AlertStates[] = { TEXT("calm"), TEXT("suspicious"), TEXT("alerted"), TEXT("combat"), TEXT("searching") };
+		static const TCHAR* AlertStates[] = { TEXT("calm"), TEXT("wary"), TEXT("suspicious"), TEXT("alerted"), TEXT("COMBAT"), TEXT("searching"), TEXT("fleeing"), TEXT("surrendered") };
 		const AMEAIController* Brain = Cast<AMEAIController>(Nearest->GetController());
 		Lines.Add(FString::Printf(TEXT("Enemy     %.0f m  %.0f hp  %s%s"), NearestDistance / 100.f, Nearest->GetHealth()->GetHealth(),
 			Brain ? AlertStates[static_cast<int32>(Brain->GetAlertState())] : TEXT("no brain"),

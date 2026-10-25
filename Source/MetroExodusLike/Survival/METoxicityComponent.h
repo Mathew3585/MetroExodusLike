@@ -4,7 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "METoxicityComponent.generated.h"
 
-class AMECharacter;
+class UMEHealthComponent;
 class USoundBase;
 
 /**
@@ -79,7 +79,7 @@ private:
 	void UpdateCoughs(float DeltaTime);
 
 	UPROPERTY(Transient)
-	TObjectPtr<AMECharacter> Character;
+	TObjectPtr<UMEHealthComponent> Health;
 
 	TMap<TWeakObjectPtr<const UObject>, float> Zones;
 	bool bProtected = false;

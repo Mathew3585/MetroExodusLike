@@ -1,5 +1,5 @@
 #include "Survival/METoxicityComponent.h"
-#include "Player/MECharacter.h"
+#include "GameFramework/Pawn.h"
 #include "Combat/MEHealthComponent.h"
 #include "Combat/MEDamageType_Toxic.h"
 #include "Kismet/GameplayStatics.h"
@@ -13,8 +13,9 @@ void UMEToxicityComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Character = Cast<AMECharacter>(GetOwner());
-	if (!Character)
+	// Anyone with health can be poisoned: the player, enemies without a mask
+	Health = GetOwner()->FindComponentByClass<UMEHealthComponent>();
+	if (!Health)
 	{
 		SetComponentTickEnabled(false);
 	}
@@ -47,7 +48,7 @@ void UMEToxicityComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (Character->GetHealth()->IsDead())
+	if (Health->IsDead())
 	{
 		return;
 	}
@@ -75,7 +76,7 @@ void UMEToxicityComponent::UpdateDamage(float DeltaTime)
 	DamageTimer += DeltaTime;
 	if (DamageTimer >= DamageInterval)
 	{
-		UGameplayStatics::ApplyDamage(Character, PendingDamage, nullptr, nullptr, UMEDamageType_Toxic::StaticClass());
+		UGameplayStatics::ApplyDamage(GetOwner(), PendingDamage, nullptr, nullptr, UMEDamageType_Toxic::StaticClass());
 		PendingDamage = 0.f;
 		DamageTimer = 0.f;
 	}
@@ -93,7 +94,16 @@ void UMEToxicityComponent::UpdateCoughs(float DeltaTime)
 	CoughTimer -= DeltaTime;
 	if (CoughTimer <= 0.f)
 	{
-		UGameplayStatics::PlaySound2D(this, CoughSound);
+		// The player hears their own coughs in the head, the others' where they are
+		const APawn* Pawn = Cast<APawn>(GetOwner());
+		if (Pawn && Pawn->IsLocallyControlled() && Pawn->IsPlayerControlled())
+		{
+			UGameplayStatics::PlaySound2D(this, CoughSound);
+		}
+		else
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, CoughSound, GetOwner()->GetActorLocation() + FVector(0.f, 0.f, 60.f));
+		}
 		const float Severity = FMath::GetRangePct(CoughThreshold, 1.f, Toxicity);
 		CoughTimer = FMath::Lerp(CoughIntervalMild, CoughIntervalSevere, Severity) * FMath::FRandRange(0.8f, 1.2f);
 	}

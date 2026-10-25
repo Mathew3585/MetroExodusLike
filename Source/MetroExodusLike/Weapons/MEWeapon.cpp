@@ -89,6 +89,11 @@ void AMEWeapon::PlayWeaponAnimation(UAnimSequenceBase* Animation)
 	}
 }
 
+USceneComponent* AMEWeapon::GetMuzzle() const
+{
+	return MuzzleFlash;
+}
+
 FVector AMEWeapon::GetBarrelDirection() const
 {
 	return MuzzleFlash->GetForwardVector();

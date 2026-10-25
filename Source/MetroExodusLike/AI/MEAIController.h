@@ -3,36 +3,48 @@
 #include "CoreMinimal.h"
 #include "AIController.h"
 #include "Perception/AIPerceptionTypes.h"
+#include "AI/MEEnemyProfile.h"
 #include "MEAIController.generated.h"
 
 class UStateTreeAIComponent;
 class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
 class UAISenseConfig_Hearing;
+class UMESquadSubsystem;
+class UAnimSequenceBase;
 class AMEAICharacter;
 class AMEDoor;
+class AMEAlarm;
 
-/** How aware of the player an enemy is. The controller decides it from its senses; the StateTree follows it. */
+/** How aware of the player an enemy is, and what it makes of it. The controller decides; the StateTree follows. */
 UENUM()
 enum class EMEAlertState : uint8
 {
 	/** Patrolling, or at its post. */
 	Calm,
+	/** Something happened here: patrols slowly, stops to look around at every point, quicker to notice.
+	 *  For good once the station is on edge (a body, a fight, the alarm), else for a while. */
+	Wary,
 	/** Saw or heard something: stops, looks, goes to check, slowly. */
 	Suspicious,
-	/** Knows someone is there (spotted, shot at, a gunshot, a body): hurries to where it happened. */
+	/** Knows someone is there (shot at, a gunshot, a body, a shout): hurries to where it happened. */
 	Alerted,
-	/** Fighting the player (5.4). */
+	/** Sees the player: cover, bursts, flanking. */
 	Combat,
 	/** Lost the trail: searches around the last known place, then calms down, wary for a while. */
-	Searching
+	Searching,
+	/** Morale broken: runs away from the player and hides. */
+	Fleeing,
+	/** Gave up: weapon dropped, does nothing more. The player decides. */
+	Surrendered
 };
 
 /**
  * Brain of a human enemy.
- * - Its senses fill a detection gauge and note noises (5.2); from them it decides the alert state.
- * - ST_Enemy_Human has one state per alert state and switches to the matching one; each runs an
- *   activity written here (patrol, investigate, hurry, search) through its C++ task.
+ * - Its senses fill a detection gauge and note noises; with what it is told (shouts, the alarm,
+ *   a silent colleague) and its morale, it decides the alert state.
+ * - ST_Enemy_Human has one state per alert state; each runs the matching activity written here
+ *   (patrol, investigate, hurry, fight, search, flee, surrender) through its C++ task.
  */
 UCLASS()
 class METROEXODUSLIKE_API AMEAIController : public AAIController
@@ -55,11 +67,27 @@ public:
 	/** Last noise heard: where, what (MENoise tags) and how long ago. False if none yet. */
 	bool GetLastNoise(FVector& OutLocation, FName& OutTag, float& OutAge) const;
 
-	/** True if a point is in its vision cone, in range and not behind a wall. */
+	/** 0..1: 1 = steady, low = about to run or give up. */
+	float GetMorale() const { return Morale; }
+	float GetAggression() const;
+
+	/** True if a point is in its vision cone, in range and not behind a wall (Target itself does not block). */
 	bool CanSeeLocation(const FVector& Location, const AActor* Target = nullptr) const;
 
-	/** Another enemy died there, in its sight: it knows something is wrong. */
-	void NotifyAllyDown(const FVector& Location);
+	/** Nothing between its eyes and the point, whatever the direction it looks (Target itself does not block). */
+	bool HasLineOfSight(const FVector& Location, const AActor* Target = nullptr) const;
+
+	/** Another enemy died in its sight. */
+	void NotifyAllyDown(AMEAICharacter* Ally);
+
+	/** A colleague shouted about Location (bFight: "he is here"), or the alarm rang. */
+	void HearCallout(const FVector& Location, bool bFight);
+
+	/** A colleague nearby stopped answering: it goes to see where he was. */
+	void ColleagueSilent(const FVector& Location);
+
+	/** The fight is over for it (dead or knocked out): the StateTree stops. */
+	void StopBrain();
 
 	/** Starts / stops what it does in an alert state (called by the StateTree task of that state). */
 	void BeginActivity(EMEAlertState Activity);
@@ -132,26 +160,33 @@ protected:
 
 	// --- Alert ---
 
-	/** Seeing the player fills the gauge past this: suspicious. Full: alerted. */
+	/** Seeing the player fills the gauge past this: suspicious. Full: fight. */
 	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", ClampMax = "1"))
 	float SuspicionThreshold = 0.35f;
-
-	/** Suspicious: stands and stares this long before going to check. */
-	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "s"))
-	float ReactionTime = 1.f;
 
 	/** Looks around this long at the place it checks. */
 	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "s"))
 	float LookAroundTime = 4.f;
 
-	/** Back to calm after a scare: detection faster for this long. */
+	/** After a false alarm it stays wary this long (after a real incident, for good). */
 	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "s"))
 	float WaryTime = 60.f;
 
+	/** On edge (wary or worse): detection faster, suspicious sooner, hears further. */
 	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "1"))
 	float WaryDetectionScale = 1.5f;
 
-	/** Moving speeds: checking something, hurrying when alerted, searching. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", ClampMax = "1"))
+	float WarySuspicionThreshold = 0.25f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "1"))
+	float WaryHearingScale = 1.3f;
+
+	/** Wary: looks around this long at each patrol point. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "s"))
+	float WaryLookTime = 2.5f;
+
+	/** Moving speeds: checking something, hurrying, searching. */
 	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "cm/s"))
 	float InvestigateSpeed = 130.f;
 
@@ -172,6 +207,88 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Alert|Search", meta = (ClampMin = "0", Units = "s"))
 	float SearchLookTime = 2.f;
 
+	/** Time spent crouched over a body it found before searching around it. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "s"))
+	float ExamineBodyTime = 3.f;
+
+	/** Shot without seeing the shooter: it guesses the direction within this angle (and the distance badly). */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", ClampMax = "90", Units = "Degrees"))
+	float ShotDirectionError = 25.f;
+
+	/** Noises are placed with an error growing with distance (share of the distance). */
+	UPROPERTY(EditDefaultsOnly, Category = "Perception|Hearing", meta = (ClampMin = "0", ClampMax = "1"))
+	float NoiseLocationError = 0.15f;
+
+	/** Runs to an alarm closer than this when it is alerted. */
+	UPROPERTY(EditDefaultsOnly, Category = "Alert", meta = (ClampMin = "0", Units = "cm"))
+	float AlarmRange = 3000.f;
+
+	// --- Combat ---
+
+	/** Player out of sight this long: the fight is over, it goes to look where he was. */
+	UPROPERTY(EditDefaultsOnly, Category = "Combat", meta = (ClampMin = "0", Units = "s"))
+	float LoseTargetTime = 4.f;
+
+	/** Keeps between these distances to the player: a cautious enemy at the far end, an aggressive one close. */
+	UPROPERTY(EditDefaultsOnly, Category = "Combat", meta = (ClampMin = "0", Units = "cm"))
+	float CloseRange = 600.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat", meta = (ClampMin = "0", Units = "cm"))
+	float FarRange = 2000.f;
+
+	/** Looks for cover this far around it. */
+	UPROPERTY(EditDefaultsOnly, Category = "Combat", meta = (ClampMin = "0", Units = "cm"))
+	float CoverSearchRadius = 1500.f;
+
+	/** Ducked in cover between bursts, between these (shorter when aggressive). */
+	UPROPERTY(EditDefaultsOnly, Category = "Combat", meta = (ClampMin = "0", Units = "s"))
+	float DuckTimeMin = 1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat", meta = (ClampMin = "0", Units = "s"))
+	float DuckTimeMax = 2.5f;
+
+	/** Changes cover after this many bursts from the same one. */
+	UPROPERTY(EditDefaultsOnly, Category = "Combat", meta = (ClampMin = "1"))
+	int32 BurstsPerCover = 3;
+
+	/** Fires at where the player was for this long after losing sight of him (pins him down). */
+	UPROPERTY(EditDefaultsOnly, Category = "Combat", meta = (ClampMin = "0", Units = "s"))
+	float SuppressTime = 2.5f;
+
+	// --- Morale ---
+
+	/** Below this it runs; below that (and close to the player) it gives up, if its profile can. */
+	UPROPERTY(EditDefaultsOnly, Category = "Morale", meta = (ClampMin = "0", ClampMax = "1"))
+	float FleeMorale = 0.3f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Morale", meta = (ClampMin = "0", ClampMax = "1"))
+	float SurrenderMorale = 0.12f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Morale", meta = (ClampMin = "0", Units = "cm"))
+	float SurrenderDistance = 1200.f;
+
+	/** Morale lost when a colleague falls (a brave one loses less). */
+	UPROPERTY(EditDefaultsOnly, Category = "Morale", meta = (ClampMin = "0", ClampMax = "1"))
+	float AllyDownMoraleLoss = 0.35f;
+
+	/** Morale lost per share of its health taken. */
+	UPROPERTY(EditDefaultsOnly, Category = "Morale", meta = (ClampMin = "0"))
+	float WoundMoraleLoss = 0.8f;
+
+	/** Morale regained per second away from the fight. */
+	UPROPERTY(EditDefaultsOnly, Category = "Morale", meta = (ClampMin = "0"))
+	float MoraleRecovery = 0.02f;
+
+	// --- Wounds ---
+
+	/** Hit in the legs: moves this much slower for good. */
+	UPROPERTY(EditDefaultsOnly, Category = "Wounds", meta = (ClampMin = "0.1", ClampMax = "1"))
+	float LimpSpeedScale = 0.6f;
+
+	/** Below this share of health it calls for help (once). */
+	UPROPERTY(EditDefaultsOnly, Category = "Wounds", meta = (ClampMin = "0", ClampMax = "1"))
+	float CallForHelpHealth = 0.4f;
+
 	// --- Patrol ---
 
 	/** Stops this close to a patrol point. */
@@ -188,17 +305,35 @@ private:
 
 	void HandleHealthChanged(float Health, float Delta, AController* DamageInstigator);
 
-	void UpdateDetection(float DeltaSeconds);
+	const UMEEnemyProfile* GetProfile() const;
+	UMESquadSubsystem* GetSquad() const;
 
-	/** Decides the alert state from what it sensed since last frame. */
+	void UpdateDetection(float DeltaSeconds);
+	void UpdateMorale(float DeltaSeconds);
+
+	/** Decides the alert state from what it sensed and was told since last frame. */
 	void UpdateAlert();
 	void BecomeSuspicious(const FVector& Location);
 	void RaiseAlert(const FVector& Location);
-	void CalmDown();
+	void StartFight();
+	/** The alert is over: wary (for good if the station is on edge), never straight back to calm. */
+	void EndAlert();
+	/** A real incident (fight, body, wound): the whole station stays on edge. */
+	void PutStationOnEdge();
+
+	/** Found a body: goes to it, examines it, warns the others, then searches around it. */
+	void CheckBody(const FVector& Location);
+	void FinishExaminingBody();
+
+	/** Where it thinks an unseen shooter is: the right direction, roughly, at a guessed distance. */
+	FVector GuessShooterLocation(const FVector& ShooterLocation) const;
 	void SetAlertState(EMEAlertState NewState);
 
-	/** Doors seen open that were closed (or the opposite) make it suspicious. */
-	void CheckDoors();
+	/** Doors that changed, bodies lying around: things it notices while looking. */
+	void CheckSurroundings();
+
+	void Bark(EMEBark Line);
+	void Shout(const FVector& Location, bool bFight);
 
 	// Activities
 	void StartPatrol();
@@ -206,6 +341,8 @@ private:
 	void MoveToPatrolPoint();
 	void ArriveAtPatrolPoint();
 	void NextPatrolPoint();
+	void PlayRoutine(UAnimSequenceBase* Routine);
+	void StopRoutine();
 
 	void StartInvestigating();
 	void GoCheck();
@@ -216,9 +353,25 @@ private:
 	void UpdateLookAround();
 	void FinishLookAround();
 
+	void StartCombat();
+	void UpdateCombat();
+	/** Best spot around: hidden from the player when ducked, able to shoot when standing, at its range. */
+	bool FindCover(FVector& OutCover) const;
+	void MoveToCover();
+	void Duck(bool bDuck);
+
+	void StartFleeing();
+	void StartSurrender();
+
+	bool TryRunToAlarm();
+
 	/** Moves to the alert target; reaching it (or failing to) calls ArriveAtTarget. */
 	void MoveToTarget(float AcceptanceRadius);
+	bool MoveToPoint(const FVector& Point, float AcceptanceRadius);
 	void ArriveAtTarget();
+
+	/** Speed for what it does, slower if it limps. */
+	void SetMoveSpeed(float Speed);
 
 	/** Turns the body toward where it walks, or toward a location. */
 	void FaceMovement();
@@ -240,6 +393,8 @@ private:
 
 	// Perception
 	TWeakObjectPtr<APawn> SeenPlayer;
+	/** The player, once sensed at least once (cover is judged from his eyes). */
+	TWeakObjectPtr<APawn> KnownPlayer;
 	float Detection = 0.f;
 	double LastSeenTime = -1.0;
 	FVector LastSeenLocation = FVector::ZeroVector;
@@ -252,11 +407,21 @@ private:
 	bool bNewNoise = false;
 	bool bHurt = false;
 	FVector HurtFrom = FVector::ZeroVector;
-	bool bSawAllyDown = false;
+	bool bAllyDown = false;
 	FVector AllyDownLocation = FVector::ZeroVector;
+	bool bCalledOut = false;
+	bool bCalloutFight = false;
+	FVector CalloutLocation = FVector::ZeroVector;
 
 	TMap<TWeakObjectPtr<AMEDoor>, bool> KnownDoors;
-	float DoorCheckTimer = 0.f;
+	TSet<TWeakObjectPtr<AActor>> KnownBodies;
+	float SurroundingsTimer = 0.f;
+
+	// Morale and wounds
+	float Morale = 1.f;
+	bool bLimping = false;
+	bool bCalledForHelp = false;
+	double LastBarkTime = -10.0;
 
 	// Activity
 	EMEAlertState Activity = EMEAlertState::Calm;
@@ -273,6 +438,25 @@ private:
 
 	int32 SearchPointsLeft = 0;
 	FVector SearchCenter = FVector::ZeroVector;
+
+	// Combat
+	enum class ECombatStep : uint8 { ToCover, Ducked, Shooting };
+	ECombatStep CombatStep = ECombatStep::Ducked;
+	bool bHasCover = false;
+	double NextCombatAction = 0.0;
+	int32 BurstsFromCover = 0;
+	bool bFirstShot = true;
+	/** Shooting step: stood up, the burst starts at NextCombatAction. */
+	bool bBurstStarted = false;
+
+	TWeakObjectPtr<AMEAlarm> AlarmToRaise;
+
+	/** Going to a body it found / crouched over it. Only a direct threat interrupts it. */
+	bool bCheckingBody = false;
+	bool bExaminingBody = false;
+	FVector BodyToCheck = FVector::ZeroVector;
+
+	bool bRoutinePlaying = false;
 
 	bool bPatrolling = false;
 	/** The first patrol starts at the point set in the level; later ones resume at the nearest. */

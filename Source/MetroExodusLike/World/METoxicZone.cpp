@@ -1,5 +1,6 @@
 #include "World/METoxicZone.h"
-#include "Player/MECharacter.h"
+#include "NavModifierComponent.h"
+#include "NavAreas/NavArea_Obstacle.h"
 #include "Survival/METoxicityComponent.h"
 #include "Components/BoxComponent.h"
 
@@ -17,15 +18,18 @@ AMEToxicZone::AMEToxicZone()
 	Zone->ShapeColor = FColor(200, 220, 40);
 	Zone->SetHiddenInGame(true);
 	RootComponent = Zone;
+
+	NavModifier = CreateDefaultSubobject<UNavModifierComponent>(TEXT("NavModifier"));
+	NavModifier->SetAreaClass(UNavArea_Obstacle::StaticClass());
 }
 
 void AMEToxicZone::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorBeginOverlap(OtherActor);
 
-	if (const AMECharacter* Character = Cast<AMECharacter>(OtherActor))
+	if (UMEToxicityComponent* Toxicity = OtherActor->FindComponentByClass<UMEToxicityComponent>())
 	{
-		Character->GetToxicity()->AddToxicZone(this, Density);
+		Toxicity->AddToxicZone(this, Density);
 	}
 }
 
@@ -33,8 +37,8 @@ void AMEToxicZone::NotifyActorEndOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorEndOverlap(OtherActor);
 
-	if (const AMECharacter* Character = Cast<AMECharacter>(OtherActor))
+	if (UMEToxicityComponent* Toxicity = OtherActor->FindComponentByClass<UMEToxicityComponent>())
 	{
-		Character->GetToxicity()->RemoveToxicZone(this);
+		Toxicity->RemoveToxicZone(this);
 	}
 }

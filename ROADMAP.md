@@ -88,11 +88,15 @@ alerte (prévient, fouille, alarme) → combat → recherche (redescend par l'al
 - [x] 5.1 `AMEAICharacter` (santé, corps MetaHuman, arme du monde) + `AMEAIController` (StateTree) ; chemins de patrouille `AMEPatrolPath` (spline, réglages par point : attente, regard, routine ; boucle / aller-retour ; poste fixe = 1 point) ; StateTree `ST_Enemy_Human` généré par `UMEEditorAILibrary` ; **provisoire** : corps d'animation MetaHuman invisible + Manny visible qui recopie la pose (`ABP_Enemy_Manny`, retarget) → un seul corps Manny dès qu'on a des animations ennemies
 - [x] 5.2 Perception (`AMEAIController`) : vue en cône + jauge de détection (distance, côté du cône, accroupi, immobile, sprint ; tient 2 s puis redescend), ouïe via `MENoise` (pas selon l'allure, réceptions, tirs, douilles, portes ; force réglable par source) ; debug : jauge au-dessus des ennemis + « ? bruit »
 - [x] 5.3 États calme → suspicion (fixe, va voir, regarde autour) → alerte (fonce vers le lieu, suit le joueur en vue) → recherche (fouille autour) → calme méfiant ; déclencheurs : jauge, bruits, tir entendu, se faire tirer dessus, collègue qui tombe, porte changée (lumières en Phase 6) ; StateTree à un état par niveau d'alerte
-- [ ] 5.4 Combat : couverts (EQS), rafales, tickets d'attaque (1-2 tireurs à la fois), contournement, débusquer (suppression, grenade)
-- [ ] 5.5 Groupe : alerte transmise à la voix (portée + délai), voix de combat (barks), appel au collègue qui ne répond pas, alarme de la station
-- [ ] 5.6 Personnalité : profils par DataAsset (recrue / vétéran : courage, précision, agressivité, réaction), moral, fuite, reddition (épargner ou non), blessures (boite, appelle à l'aide)
-- [ ] 5.7 Monde : routines de vie (fumer, feu, discuter, dormir), évite le gaz sans masque (tousse dedans), cadavre trouvé = alerte, lampes torches dans le noir
-- [ ] 5.8 Mort, ragdoll (loot sur le corps → 7.2)
+- [x] 5.4 Combat : couverts cherchés en C++ sur le NavMesh (caché accroupi, tire debout), rafales (`UMEAIWeaponComponent`, dispersion du profil, cible mobile plus dure), tickets d'attaque (2 tireurs max, `UMESquadSubsystem`), contourneur (le plus agressif), change de couvert si débordé / après 3 rafales, tir de suppression, recharge à couvert ; réaction physique aux impacts ; grenade → asset
+- [x] 5.5 Groupe : cris transmis aux autres (25 m, moitié à travers les murs, délai), voix de combat (`EMEBark`, sons dans le profil → assets), collègue tué sans témoin = les autres viennent voir ~20 s après, alarme (`AMEAlarm` / `BP_Alarm`) : un ennemi court la sonner, tout le niveau arrive
+- [x] 5.6 Personnalité : `UMEEnemyProfile` (`DA_Enemy_Recruit` / `DA_Enemy_Veteran` : détection, réaction, précision, dégâts, rafales, agressivité, courage, reddition, masque), moral (blessures, collègue tombé, seul au combat), fuite, reddition (arme lâchée, à genoux), boite si touché aux jambes, appelle à l'aide sous 40 % de vie
+- [x] 5.7 Monde : routine jouée en boucle aux points de patrouille (`Routine`, animations → assets), zones toxiques évitées (NavModifier) et toxicité / toux pour les ennemis sans masque, cadavre trouvé = alerte, lampe torche sur l'arme (`bFlashlight`)
+- [x] 5.8 Mort : ragdoll poussé par le tir mortel, l'arme tombe avec le corps (loot sur le corps → 7.2)
+- [x] 5.9 Corrections après test : état « méfiant » (`Wary`) — la station reste sur les nerfs après un incident grave, jamais de retour au calme ; examen des corps (accroupi, prévient, fouille autour) prioritaire sur les bruits ; touché sans voir le tireur = direction devinée ; bruits lointains placés approximativement ; tirs ennemis sur le canal Pawn (touchent le joueur, pas de tir fratricide) ; dégâts localisés (tête ×4, bras ×0,6, jambes ×0,7) ; voix HumanVocalizations (recrue / vétéran), pas des ennemis, sons spatialisés (`ATT_*`)
+- [ ] 5b.1 Reddition quand on vise un ennemi (épargner / assommer / tuer, compteur de morale)
+- [ ] 5b.2 Distraire : lancer un objet (bouteille) qui attire les ennemis
+- Plus tard : chef / officier, exploiter les rechargements du joueur, types d'ennemis (lourd, officier), gardes endormis, conversations, masque des ennemis, renforts, grenades, corps à corps
 
 **Fini quand :** un groupe de 3 ennemis offre un combat crédible.
 
@@ -157,10 +161,12 @@ On cherche d'abord du gratuit / pas cher (Fab, Epic, Freesound), licence vérifi
 | Animation des bras FPS : essuyer la visière (main gauche) ; en attendant : arme rangée | 4.5 | `UMEVisorComponent` | à trouver |
 | Animations ennemi **sur Manny** : locomotion fusil, visée, tir, recharge, couvert, réactions aux coups, morts (piste gratuite : Lyra, licence à vérifier) ; permettront un seul corps | 5.1 → 5.4 | AnimBP ennemi sur `BP_MEAICharacter` | à trouver |
 | Grenade : mesh, son, explosion | 5.4 | grenade ennemie | à trouver |
-| Voix d'ennemis avec des mots (barks : « recharge ! », « il est là ! »…) ; HumanVocalizations n'a que grognements / souffles | 5.5 | profil d'ennemi | à trouver |
+| Voix d'ennemis **avec des mots** (« recharge ! », « il est là ! », « t'as entendu ? »…) | 5.5 | `DA_Enemy_*` → Barks | à trouver ; douleur, mort, cris de repérage / alarme, fuite, reddition déjà branchés (`Audio/Enemies/`, HumanVocalizations Male B = recrue, Male C = vétéran) |
 | Animations de reddition et de boiterie | 5.6 | AnimBP ennemi | à trouver |
+| Animation d'examen d'un corps (accroupi, fouille) ; en attendant : accroupi | 5.7 | AnimBP ennemi | à trouver |
 | Animations de routines : fumer, assis, dormir, se chauffer | 5.7 | `AMEPatrolPath` → Routine | à trouver |
 | Mesh de lampe torche (ennemis, puis joueur en 6.3) | 5.7 | `BP_MEAICharacter` | à trouver |
+| Alarme de station : mesh (cloche / sirène) et son en boucle | 5.5 | `BP_Alarm` → Mesh / Alarm Sound | à trouver (cylindre en attendant) |
 
 ---
 

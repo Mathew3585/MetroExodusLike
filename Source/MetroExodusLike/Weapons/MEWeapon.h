@@ -43,6 +43,8 @@ public:
 	const UArrowComponent* GetShellEjectPort() const { return ShellEjectPort; }
 	/** Barrel direction: the muzzle flash's X axis. */
 	FVector GetBarrelDirection() const;
+	/** The muzzle (where the flash comes out, X along the barrel): shots and lights start there. */
+	USceneComponent* GetMuzzle() const;
 
 	// --- Ammo ---
 

@@ -5,6 +5,7 @@
 #include "MEPatrolPath.generated.h"
 
 class USplineComponent;
+class UAnimSequenceBase;
 
 UENUM()
 enum class EMEPatrolMode : uint8
@@ -28,6 +29,10 @@ struct FMEPatrolPoint
 	/** While waiting, face along the spline at this point (drag its tangent to aim). */
 	UPROPERTY(EditAnywhere, Category = "Patrol")
 	bool bFaceTangent = true;
+
+	/** Played in a loop while waiting here (smoking, warming hands...). On the enemy's animation body skeleton. */
+	UPROPERTY(EditAnywhere, Category = "Patrol")
+	TObjectPtr<UAnimSequenceBase> Routine;
 };
 
 /**
