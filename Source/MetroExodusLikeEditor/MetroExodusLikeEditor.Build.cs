@@ -17,6 +17,12 @@ public class MetroExodusLikeEditor : ModuleRules
 			"Kismet",
 			"AnimGraph",       // Custom anim graph nodes
 			"BlueprintGraph",
+			"AssetTools",
+			"AIModule",
+			"StateTreeModule",
+			"StateTreeEditorModule",   // Building the enemy StateTree
+			"GameplayStateTreeModule",
+			"PropertyBindingUtils",
 			"MetroExodusLike"
 		});
 	}

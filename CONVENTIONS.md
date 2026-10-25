@@ -65,6 +65,7 @@ Exceptions imposées par Unreal : le graphe d'animation (AnimBP) et la mise en p
 | Input | `Input/` | `Input/` |
 | Interaction | `Interaction/` | `Interaction/` |
 | Interface | `UI/` | `UI/` |
+| IA (ennemis, contrôleurs, tâches StateTree) | `AI/` | `AI/` |
 | Armes, IA, survie, inventaire… | un dossier par domaine, créé quand on en a besoin | idem |
 | Acteurs posés par le level design (zones sûres, plus tard checkpoints) | `World/` | `World/` |
 | Niveaux | | `Maps/` |

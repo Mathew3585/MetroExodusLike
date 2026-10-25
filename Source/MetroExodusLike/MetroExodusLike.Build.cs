@@ -21,7 +21,9 @@ public class MetroExodusLike : ModuleRules
 			"NavigationSystem",  // Navmesh queries
 			"UMG",               // Widgets (prompts, menus)
 			"Niagara",           // Effects (impacts, muzzle flash)
-			"AnimGraphRuntime"   // Custom anim nodes (arms offset)
+			"AnimGraphRuntime",  // Custom anim nodes (arms offset)
+			"StateTreeModule",   // AI logic (StateTree)
+			"GameplayStateTreeModule" // StateTree on AI controllers
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

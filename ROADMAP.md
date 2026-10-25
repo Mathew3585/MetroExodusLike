@@ -75,16 +75,24 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [x] 4.3 Zones toxiques (`AMEToxicZone` / `BP_ToxicZone`, densité réglable) : toxicité qui monte dans le gaz et retombe à l'air libre, dégâts au-dessus d'un seuil (sans grognement ni à-coup), toux de plus en plus fréquente, vision verdâtre / vignette / aberration ; la plus dense des zones superposées compte
 - [~] 4.4 Masque à gaz sur G (`UMEGasMaskComponent`) : tap = mettre / retirer (arme rangée, protège une fois mis), maintenu = changer de filtre (objet `DA_Item_Filter`, 3 min par filtre, usé seulement masque porté) ; respiration dans le masque calme / haletante selon l'essoufflement et en fin de filtre ; **reste l'animation et les sons du masque** → voir *Assets à trouver*
 - [~] 4.5 Visière (`UMEVisorComponent` + post-process `M_PP_Visor`) : contour du masque, buée qui suit l'essoufflement et la respiration, essuyage sur X, fissures aux coups (3e = visière brisée, le masque ne protège plus) ; **base en place, rendu du post-process à refaire** (textures → voir *Assets à trouver*)
-- [ ] 4.6 Montre au poignet : temps de filtre restant + indicateur de visibilité (branché en Phase 6)
+- [-] 4.6 Montre au poignet → reportée : à repenser plus tard (éviter le copier-coller de Metro) ; le chrono du filtre passe par la respiration en attendant
 
 **Fini quand :** traverser une zone toxique est stressant et lisible sans HUD.
 
 ## Phase 5 — IA humaine
-- [ ] 5.1 `AMEAICharacter` + `AMEAIController` (Behavior Tree ou StateTree, à décider à ce moment)
-- [ ] 5.2 Perception : vue + ouïe (tirs, pas : événements de bruit émis aux pas de l'animation, plus fort en sprint, quasi nul accroupi)
-- [ ] 5.3 États : patrouille → suspicion → alerte → combat → recherche
-- [ ] 5.4 Combat : tir, mise à couvert simple, déplacement
-- [ ] 5.5 Mort, ragdoll, loot sur le corps
+Ennemis = occupants de la station (groupes de 2 à 4). **StateTree** (tâches en C++, l'asset ne fait que les relier).
+Comportement décidé : combat **tactique crédible**, **détection progressive** (jauge selon distance / posture / mouvement / lumière),
+un bruit attire l'ennemi vers l'endroit sans révéler le joueur. États : calme (patrouille, routine) → suspicion (vérifie) →
+alerte (prévient, fouille, alarme) → combat → recherche (redescend par l'alerte, jamais directement au calme).
+
+- [x] 5.1 `AMEAICharacter` (santé, corps MetaHuman, arme du monde) + `AMEAIController` (StateTree) ; chemins de patrouille `AMEPatrolPath` (spline, réglages par point : attente, regard, routine ; boucle / aller-retour ; poste fixe = 1 point) ; StateTree `ST_Enemy_Human` généré par `UMEEditorAILibrary` ; **provisoire** : corps d'animation MetaHuman invisible + Manny visible qui recopie la pose (`ABP_Enemy_Manny`, retarget) → un seul corps Manny dès qu'on a des animations ennemies
+- [ ] 5.2 Perception : vue avec jauge de détection, ouïe (pas selon l'allure via `UMEFootstepComponent`, tirs, douilles, portes) ; debug de la jauge
+- [ ] 5.3 États calme → suspicion → alerte → recherche ; remarque les changements (lumière éteinte, porte ouverte)
+- [ ] 5.4 Combat : couverts (EQS), rafales, tickets d'attaque (1-2 tireurs à la fois), contournement, débusquer (suppression, grenade)
+- [ ] 5.5 Groupe : alerte transmise à la voix (portée + délai), voix de combat (barks), appel au collègue qui ne répond pas, alarme de la station
+- [ ] 5.6 Personnalité : profils par DataAsset (recrue / vétéran : courage, précision, agressivité, réaction), moral, fuite, reddition (épargner ou non), blessures (boite, appelle à l'aide)
+- [ ] 5.7 Monde : routines de vie (fumer, feu, discuter, dormir), évite le gaz sans masque (tousse dedans), cadavre trouvé = alerte, lampes torches dans le noir
+- [ ] 5.8 Mort, ragdoll (loot sur le corps → 7.2)
 
 **Fini quand :** un groupe de 3 ennemis offre un combat crédible.
 
@@ -147,6 +155,12 @@ On cherche d'abord du gratuit / pas cher (Fab, Epic, Freesound), licence vérifi
 | Textures de visière : fissures, buée, rayures (remplacent le procédural) | 4.5 | `M_PP_Visor` | à trouver (procédural en attendant) |
 | Sons de visière : fissure, visière brisée, essuyage | 4.5 | `BP_MECharacter` → Visor → Crack / Break / Wipe Sound | à trouver |
 | Animation des bras FPS : essuyer la visière (main gauche) ; en attendant : arme rangée | 4.5 | `UMEVisorComponent` | à trouver |
+| Animations ennemi **sur Manny** : locomotion fusil, visée, tir, recharge, couvert, réactions aux coups, morts (piste gratuite : Lyra, licence à vérifier) ; permettront un seul corps | 5.1 → 5.4 | AnimBP ennemi sur `BP_MEAICharacter` | à trouver |
+| Grenade : mesh, son, explosion | 5.4 | grenade ennemie | à trouver |
+| Voix d'ennemis avec des mots (barks : « recharge ! », « il est là ! »…) ; HumanVocalizations n'a que grognements / souffles | 5.5 | profil d'ennemi | à trouver |
+| Animations de reddition et de boiterie | 5.6 | AnimBP ennemi | à trouver |
+| Animations de routines : fumer, assis, dormir, se chauffer | 5.7 | `AMEPatrolPath` → Routine | à trouver |
+| Mesh de lampe torche (ennemis, puis joueur en 6.3) | 5.7 | `BP_MEAICharacter` | à trouver |
 
 ---
 

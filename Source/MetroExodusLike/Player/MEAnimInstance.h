@@ -4,7 +4,7 @@
 #include "Animation/AnimInstance.h"
 #include "MEAnimInstance.generated.h"
 
-class AMECharacter;
+class ACharacter;
 class UAnimSequenceBase;
 
 /** A landing clip. The GASP clips start in the air, so we skip to the foot contact. */
@@ -128,7 +128,7 @@ private:
 	void PlayOneShot(UAnimSequenceBase* Animation, float PlayRate, float StartTime, float HoldTime, bool bInterruptible);
 
 	UPROPERTY(Transient)
-	TObjectPtr<AMECharacter> Character;
+	TObjectPtr<ACharacter> Character;
 
 	/** Remaining time before the current one-shot blends out (0 = until it ends). */
 	float OneShotTimeRemaining = 0.f;

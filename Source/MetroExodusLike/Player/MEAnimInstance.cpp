@@ -20,7 +20,8 @@ void UMEAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
 
-	Character = Cast<AMECharacter>(TryGetPawnOwner());
+	// Any character: the player's bodies and the enemies share this AnimBP
+	Character = Cast<ACharacter>(TryGetPawnOwner());
 }
 
 void UMEAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -38,7 +39,8 @@ void UMEAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	GroundSpeed = Velocity.Size2D();
 	bShouldMove = GroundSpeed > 3.f && !Movement->GetCurrentAcceleration().IsNearlyZero();
 	bIsInAir = Movement->IsFalling();
-	bIsSprinting = Character->IsSprinting();
+	const AMECharacter* Player = Cast<AMECharacter>(Character);
+	bIsSprinting = Player && Player->IsSprinting();
 	bIsCrouching = Movement->IsCrouching();
 
 	Direction = bShouldMove

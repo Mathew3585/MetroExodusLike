@@ -12,6 +12,9 @@
 #include "Weapons/MEWeaponComponent.h"
 #include "Weapons/MEWeaponData.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "AI/MEAICharacter.h"
+#include "AI/MEAIController.h"
+#include "EngineUtils.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
 #include "Engine/Font.h"
@@ -94,6 +97,27 @@ void AMEHUD::DrawDebugPanel()
 		: TEXT("standing");
 	Lines.Add(TEXT(""));
 	Lines.Add(FString::Printf(TEXT("Move      %.0f cm/s  %s%s"), Movement->Velocity.Size2D(), Stance, Character->IsLandingStunned() ? TEXT("  LANDING") : TEXT("")));
+
+	// The nearest living enemy: what its brain is doing
+	const AMEAICharacter* Nearest = nullptr;
+	float NearestDistance = TNumericLimits<float>::Max();
+	for (TActorIterator<AMEAICharacter> It(GetWorld()); It; ++It)
+	{
+		const float Distance = FVector::Dist(It->GetActorLocation(), Character->GetActorLocation());
+		if (!It->GetHealth()->IsDead() && Distance < NearestDistance)
+		{
+			Nearest = *It;
+			NearestDistance = Distance;
+		}
+	}
+	if (Nearest)
+	{
+		static const TCHAR* AlertStates[] = { TEXT("calm"), TEXT("suspicious"), TEXT("alerted"), TEXT("combat"), TEXT("searching") };
+		const AMEAIController* Brain = Cast<AMEAIController>(Nearest->GetController());
+		Lines.Add(FString::Printf(TEXT("Enemy     %.0f m  %.0f hp  %s%s"), NearestDistance / 100.f, Nearest->GetHealth()->GetHealth(),
+			Brain ? AlertStates[static_cast<int32>(Brain->GetAlertState())] : TEXT("no brain"),
+			Brain ? *(TEXT(", ") + Brain->GetActivityDescription()) : TEXT("")));
+	}
 
 	// Dark box behind the text so it reads on any background
 	const UFont* Font = GEngine->GetSmallFont();
