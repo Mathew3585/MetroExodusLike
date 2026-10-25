@@ -13,6 +13,7 @@ class UMEHealthComponent;
 class UMEDamageFeedbackComponent;
 class UMEMedkitComponent;
 class UMEToxicityComponent;
+class UMEGasMaskComponent;
 class UMEFootstepComponent;
 class AController;
 class UMEAnimInstance;
@@ -42,6 +43,7 @@ public:
 	UMEHealthComponent* GetHealth() const { return Health; }
 	UMEMedkitComponent* GetMedkit() const { return Medkit; }
 	UMEToxicityComponent* GetToxicity() const { return Toxicity; }
+	UMEGasMaskComponent* GetGasMask() const { return GasMask; }
 	USkeletalMeshComponent* GetFirstPersonArms() const { return FirstPersonArms; }
 	USkeletalMeshComponent* GetWorldBody() const { return ShadowMesh; }
 	const UMEInputConfig* GetInputConfig() const { return InputConfig; }
@@ -103,6 +105,10 @@ protected:
 	/** Toxic air breathed (toxic zones), wears off in clean air. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEToxicityComponent> Toxicity;
+
+	/** Gas mask and its filters: protects from toxic air. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEGasMaskComponent> GasMask;
 
 	/** Footsteps read from the body's feet, landing sounds. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -234,6 +240,8 @@ private:
 	void InspectPressed();
 	void SwitchFireModePressed();
 	void MedkitPressed();
+	void GasMaskPressed();
+	void GasMaskReleased();
 	void UpdateMaxWalkSpeed();
 	void UpdateBodyRotation(float DeltaSeconds);
 	void UpdateLandingRecovery(float DeltaSeconds);

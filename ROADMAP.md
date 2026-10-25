@@ -73,7 +73,7 @@ geste (ramasser, porte, interrupteur…) et sa durée : l'animation main gauche 
 - [~] 4.2 Medkit sur Q (`UMEMedkitComponent`, objet d'inventaire `DA_Item_Medkit`) : arme rangée, injection, santé rendue sur 1,5 s ; geste « arme rangée » réutilisable (`PutAwayFor`, Holster / Draw du pack) ; **reste l'animation medkit et le son** → voir *Assets à trouver*
   - Panneau de debug (`AMEHUD`) : santé, inventaire, arme, mouvement ; **Show Debug** dans `BP_MEGameMode`, commande `MEDebug`
 - [x] 4.3 Zones toxiques (`AMEToxicZone` / `BP_ToxicZone`, densité réglable) : toxicité qui monte dans le gaz et retombe à l'air libre, dégâts au-dessus d'un seuil (sans grognement ni à-coup), toux de plus en plus fréquente, vision verdâtre / vignette / aberration ; la plus dense des zones superposées compte
-- [ ] 4.4 Masque à gaz : mettre / retirer, filtres avec chrono, essoufflement
+- [~] 4.4 Masque à gaz sur G (`UMEGasMaskComponent`) : tap = mettre / retirer (arme rangée, protège une fois mis), maintenu = changer de filtre (objet `DA_Item_Filter`, 3 min par filtre, usé seulement masque porté) ; respiration dans le masque calme / haletante selon l'essoufflement et en fin de filtre ; **reste l'animation et les sons du masque** → voir *Assets à trouver*
 - [ ] 4.5 Visière : buée / fissures (post-process), essuyer la visière
 - [ ] 4.6 Montre au poignet : temps de filtre restant + indicateur de visibilité (branché en Phase 6)
 
@@ -140,7 +140,10 @@ On cherche d'abord du gratuit / pas cher (Fab, Epic, Freesound), licence vérifi
 | Son d'injection / de seringue | 4.2 | `BP_MECharacter` → Medkit → Inject Sound | à trouver |
 | Mesh de medkit (objet ramassable) | 4.2 | `DA_Item_Medkit` → World Mesh + un `BP_Pickup_Medkit` | à trouver |
 | Visuel du gaz : brouillard / particules (Local Fog Volume ou Niagara) | 4.3 | `BP_ToxicZone` → composant ajouté dans le BP | à trouver / à faire |
-| Toux, respiration sous masque (marche / course) | 4.4 | masque à gaz | déjà dans le projet : `External/HumanVocalizations/HumanMaleA` |
+| Toux, respiration sous masque (marche / course) | 4.4 | `BP_MECharacter` → GasMask → Calm / Hard Breath Sound | branché : `SC_Mask_Breath_Calm` / `SC_Mask_Breath_Hard` (HumanVocalizations, Male A) |
+| Animation des bras FPS : mettre / retirer le masque, changer le filtre (main gauche) ; en attendant : arme rangée | 4.4 | `UMEGasMaskComponent` | à trouver |
+| Sons du masque : mettre, retirer, visser un filtre | 4.4 | `BP_MECharacter` → GasMask → Put On / Take Off / Change Filter Sound | à trouver |
+| Mesh de filtre (objet ramassable) | 4.4 | `DA_Item_Filter` → World Mesh (cylindre en attendant) | à trouver |
 
 ---
 

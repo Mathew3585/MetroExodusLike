@@ -6,6 +6,7 @@
 #include "Inventory/MEItemData.h"
 #include "Survival/MEMedkitComponent.h"
 #include "Survival/METoxicityComponent.h"
+#include "Survival/MEGasMaskComponent.h"
 #include "Weapons/MEWeapon.h"
 #include "Weapons/MEWeaponComponent.h"
 #include "Weapons/MEWeaponData.h"
@@ -54,6 +55,11 @@ void AMEHUD::DrawDebugPanel()
 	Lines.Add(FString::Printf(TEXT("Toxicity  %.0f %%%s%s"), Toxicity->GetToxicity() * 100.f,
 		Toxicity->GetExposure() > 0.f ? *FString::Printf(TEXT("  in gas (density %.1f)"), Toxicity->GetExposure()) : TEXT(""),
 		Toxicity->IsProtected() ? TEXT("  PROTECTED") : TEXT("")));
+	const UMEGasMaskComponent* GasMask = Character->GetGasMask();
+	static const TCHAR* MaskStates[] = { TEXT("off"), TEXT("putting on"), TEXT("ON"), TEXT("taking off"), TEXT("changing filter") };
+	const int32 FilterSeconds = FMath::CeilToInt(GasMask->GetFilterRemaining());
+	Lines.Add(FString::Printf(TEXT("Gas mask  %s  filter %d:%02d  (%d spare)"), MaskStates[static_cast<int32>(GasMask->GetState())],
+		FilterSeconds / 60, FilterSeconds % 60, GasMask->GetSpareFilters()));
 
 	Lines.Add(TEXT(""));
 	Lines.Add(TEXT("Inventory"));

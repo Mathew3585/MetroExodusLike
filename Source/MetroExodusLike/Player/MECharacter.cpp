@@ -11,6 +11,7 @@
 #include "Player/MEDamageFeedbackComponent.h"
 #include "Survival/MEMedkitComponent.h"
 #include "Survival/METoxicityComponent.h"
+#include "Survival/MEGasMaskComponent.h"
 #include "Player/MEFootstepComponent.h"
 #include "Core/MEGameMode.h"
 #include "Kismet/GameplayStatics.h"
@@ -81,6 +82,7 @@ AMECharacter::AMECharacter()
 	DamageFeedback = CreateDefaultSubobject<UMEDamageFeedbackComponent>(TEXT("DamageFeedback"));
 	Medkit = CreateDefaultSubobject<UMEMedkitComponent>(TEXT("Medkit"));
 	Toxicity = CreateDefaultSubobject<UMEToxicityComponent>(TEXT("Toxicity"));
+	GasMask = CreateDefaultSubobject<UMEGasMaskComponent>(TEXT("GasMask"));
 	Footsteps = CreateDefaultSubobject<UMEFootstepComponent>(TEXT("Footsteps"));
 
 	// Heavy, grounded movement: slow acceleration, little air control
@@ -403,6 +405,11 @@ void AMECharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	{
 		Input->BindAction(InputConfig->MedkitAction, ETriggerEvent::Started, this, &AMECharacter::MedkitPressed);
 	}
+	if (InputConfig->GasMaskAction)
+	{
+		Input->BindAction(InputConfig->GasMaskAction, ETriggerEvent::Started, this, &AMECharacter::GasMaskPressed);
+		Input->BindAction(InputConfig->GasMaskAction, ETriggerEvent::Completed, this, &AMECharacter::GasMaskReleased);
+	}
 }
 
 bool AMECharacter::CanInteract() const
@@ -460,6 +467,16 @@ void AMECharacter::SwitchFireModePressed()
 void AMECharacter::MedkitPressed()
 {
 	Medkit->UseMedkit();
+}
+
+void AMECharacter::GasMaskPressed()
+{
+	GasMask->MaskPressed();
+}
+
+void AMECharacter::GasMaskReleased()
+{
+	GasMask->MaskReleased();
 }
 
 void AMECharacter::InteractReleased()

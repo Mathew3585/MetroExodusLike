@@ -55,4 +55,8 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
 	TObjectPtr<UInputAction> MedkitAction;
+
+	/** Tap: put on / take off the gas mask. Hold: change the filter. */
+	UPROPERTY(EditDefaultsOnly, Category = "Input|Actions")
+	TObjectPtr<UInputAction> GasMaskAction;
 };
