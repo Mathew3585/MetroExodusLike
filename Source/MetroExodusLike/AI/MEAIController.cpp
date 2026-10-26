@@ -6,6 +6,7 @@
 #include "World/MEAlarm.h"
 #include "World/MEPatrolPath.h"
 #include "Interaction/MEDoor.h"
+#include "World/MELamp.h"
 #include "Player/MECharacter.h"
 #include "Stealth/MEVisibilityComponent.h"
 #include "Survival/MEFlashlightComponent.h"
@@ -469,6 +470,31 @@ void AMEAIController::CheckSurroundings()
 			if (AlertState == EMEAlertState::Calm || AlertState == EMEAlertState::Wary)
 			{
 				BecomeSuspicious(Door->GetActorLocation());
+			}
+		}
+	}
+
+	// A lamp going out (or on) where it looks: someone is there
+	for (TActorIterator<AMELamp> It(GetWorld()); It; ++It)
+	{
+		AMELamp* Lamp = *It;
+		const FVector LampLocation = Lamp->GetActorLocation();
+		if (FVector::DistSquared(LampLocation, Enemy->GetActorLocation()) > FMath::Square(SightRadius) || !CanSeeLocation(LampLocation, Lamp))
+		{
+			continue;
+		}
+
+		bool* WasLit = KnownLamps.Find(Lamp);
+		if (!WasLit)
+		{
+			KnownLamps.Add(Lamp, Lamp->IsLit());
+		}
+		else if (*WasLit != Lamp->IsLit())
+		{
+			*WasLit = Lamp->IsLit();
+			if (AlertState == EMEAlertState::Calm || AlertState == EMEAlertState::Wary)
+			{
+				BecomeSuspicious(Lamp->GetGroundLocation());
 			}
 		}
 	}

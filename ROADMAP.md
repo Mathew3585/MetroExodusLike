@@ -107,7 +107,7 @@ alerte (prévient, fouille, alarme) → combat → recherche (redescend par l'al
 - [ ] 6.2 Indicateur sur la montre (LED)
 - [x] 6.3a Lampe torche frontale de base (`UMEFlashlightComponent`, spot sur le front qui suit la vue) : F / clic du stick droit = allumer / éteindre, grésillement à l'allumage (durée, vitesse, coupures réglables) ; réglages de la lumière dans `BP_MECharacter` ; sons de clic prêts (→ *Assets à trouver*)
 - [ ] 6.3b Batterie de la lampe (s'use allumée, faiblit et clignote en fin de charge) + chargeur manuel, briquet
-- [ ] 6.4 Lumières destructibles / éteignables
+- [x] 6.4 Lampes (`AMELamp`, un `BP_Lamp_*` par modèle : mesh + lumières du BP + lueur `LampEmissive` du matériau) : allumées / éteintes par interrupteur ou disjoncteur (`AMESwitch`), à la main pour les lampes basses (option), cassées pour de bon par une balle (grésillement, étincelles, bruit de verre entendu) ; lampes anciennes qui clignotent (option) ; un ennemi qui voit une lampe changer devient suspicieux et va voir dessous
 - [x] 6.5 La perception IA utilise la visibilité : dans le noir l'ennemi ne voit qu'à ~4 m (`DarkSightDistance`) et sa jauge monte 4× moins vite, collé = toujours vu ; faisceau de la lampe braqué sur lui ou tache de lumière dans son champ 0,5 s = suspicion vers la source ; debug : portée de vue sur le joueur, « too dark », « sees your beam »
 - [ ] 6.6 Takedown silencieux (assommer / tuer) par derrière
 
@@ -170,6 +170,8 @@ On cherche d'abord du gratuit / pas cher (Fab, Epic, Freesound), licence vérifi
 | Animations de routines : fumer, assis, dormir, se chauffer | 5.7 | `AMEPatrolPath` → Routine | à trouver |
 | Mesh de lampe torche (ennemis, puis joueur en 6.3) | 5.7 | `BP_MEAICharacter` | à trouver |
 | Sons de clic de la lampe torche (allumer / éteindre) | 6.3a | `BP_MECharacter` → Flashlight → Switch On / Off Sound | à trouver |
+| Sons de lampe : verre / ampoule qui casse, bourdonnement de néon en boucle, clic d'interrupteur à la main | 6.4 | `BP_Lamp_*` → Break / Hum / Toggle Sound | à trouver |
+| Effet de lampe cassée : étincelles + éclats de verre (Niagara) | 6.4 | `BP_Lamp_*` → Break Effect | à trouver (Niagara Examples ?) |
 | Alarme de station : mesh (cloche / sirène) et son en boucle | 5.5 | `BP_Alarm` → Mesh / Alarm Sound | à trouver (cylindre en attendant) |
 
 ---

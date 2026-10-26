@@ -15,6 +15,7 @@ namespace MENoise
 	METROEXODUSLIKE_API extern const FName Gunshot;
 	METROEXODUSLIKE_API extern const FName Casing;
 	METROEXODUSLIKE_API extern const FName Door;
+	METROEXODUSLIKE_API extern const FName Glass;
 
 	/** Reports a noise made by Instigator at Location (Instigator = the pawn responsible). */
 	METROEXODUSLIKE_API void Report(AActor* Instigator, const FVector& Location, float Loudness, FName Tag);

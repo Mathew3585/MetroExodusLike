@@ -95,7 +95,8 @@ void UMEInteractionComponent::UpdateFocus()
 		FCollisionShape::MakeSphere(TraceRadius), Params);
 
 	AActor* HitActor = bHit ? Hit.GetActor() : nullptr;
-	SetFocus(HitActor && HitActor->Implements<UMEInteractable>() ? HitActor : nullptr);
+	const IMEInteractable* Interactable = Cast<IMEInteractable>(HitActor);
+	SetFocus(Interactable && Interactable->CanBeFocused(Character) ? HitActor : nullptr);
 
 	// The offer can change while focused (door opened, light switched...)
 	BroadcastFocus();

@@ -6,7 +6,7 @@
 #include "MESwitch.generated.h"
 
 /**
- * Light switch or breaker lever: toggles every light component of the linked actors.
+ * Light switch or breaker lever: turns the linked lamps (AMELamp) on / off, or toggles every light component of other actors.
  * With a hold duration it becomes a lever the player has to pull.
  */
 UCLASS()

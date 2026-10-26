@@ -9,6 +9,7 @@ namespace MENoise
 	const FName Gunshot = TEXT("Gunshot");
 	const FName Casing = TEXT("Casing");
 	const FName Door = TEXT("Door");
+	const FName Glass = TEXT("Glass");
 
 	void Report(AActor* Instigator, const FVector& Location, float Loudness, FName Tag)
 	{

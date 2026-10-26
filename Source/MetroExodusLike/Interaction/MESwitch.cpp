@@ -1,6 +1,7 @@
 #include "Interaction/MESwitch.h"
 #include "Components/LightComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "World/MELamp.h"
 
 #define LOCTEXT_NAMESPACE "MESwitch"
 
@@ -40,6 +41,11 @@ void AMESwitch::ApplyState()
 	{
 		if (!LightActor)
 		{
+			continue;
+		}
+		if (AMELamp* Lamp = Cast<AMELamp>(LightActor))
+		{
+			Lamp->SetOn(bIsOn);
 			continue;
 		}
 

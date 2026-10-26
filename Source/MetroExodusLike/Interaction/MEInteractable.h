@@ -55,6 +55,9 @@ class METROEXODUSLIKE_API IMEInteractable
 	GENERATED_BODY()
 
 public:
+	/** false = the player's aim ignores it (no prompt), e.g. a lamp out of reach. */
+	virtual bool CanBeFocused(const AMECharacter* Interactor) const { return true; }
+
 	virtual FMEInteractionInfo GetInteractionInfo(const AMECharacter* Interactor) const = 0;
 	virtual void Interact(AMECharacter* Interactor) = 0;
 };

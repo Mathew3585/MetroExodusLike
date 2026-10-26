@@ -14,6 +14,7 @@ class UMESquadSubsystem;
 class UAnimSequenceBase;
 class AMEAICharacter;
 class AMEDoor;
+class AMELamp;
 class AMEAlarm;
 
 /** How aware of the player an enemy is, and what it makes of it. The controller decides; the StateTree follows. */
@@ -462,6 +463,8 @@ private:
 	FVector CalloutLocation = FVector::ZeroVector;
 
 	TMap<TWeakObjectPtr<AMEDoor>, bool> KnownDoors;
+	/** Lamps seen, and whether they were lit then. */
+	TMap<TWeakObjectPtr<AMELamp>, bool> KnownLamps;
 	TSet<TWeakObjectPtr<AActor>> KnownBodies;
 	float SurroundingsTimer = 0.f;
 
