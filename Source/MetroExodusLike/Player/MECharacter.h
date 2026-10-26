@@ -17,6 +17,7 @@ class UMEGasMaskComponent;
 class UMEVisorComponent;
 class UMEFlashlightComponent;
 class UMEAimAssistComponent;
+class UMEVisibilityComponent;
 class UMEFootstepComponent;
 class AController;
 class UMEAnimInstance;
@@ -50,6 +51,7 @@ public:
 	UMEVisorComponent* GetVisor() const { return Visor; }
 	UMEFlashlightComponent* GetFlashlight() const { return Flashlight; }
 	UMEAimAssistComponent* GetAimAssist() const { return AimAssist; }
+	UMEVisibilityComponent* GetVisibility() const { return Visibility; }
 	USkeletalMeshComponent* GetFirstPersonArms() const { return FirstPersonArms; }
 	USkeletalMeshComponent* GetWorldBody() const { return ShadowMesh; }
 	const UMEInputConfig* GetInputConfig() const { return InputConfig; }
@@ -136,6 +138,10 @@ protected:
 	/** Gamepad only: slows the stick over enemies, slides the view onto one when aiming. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UMEAimAssistComponent> AimAssist;
+
+	/** How lit the player is (what the enemies' eyes get): the dark hides him. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UMEVisibilityComponent> Visibility;
 
 	/** Footsteps read from the body's feet, landing sounds. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

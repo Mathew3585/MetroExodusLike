@@ -10,6 +10,7 @@
 #include "Survival/MEVisorComponent.h"
 #include "Survival/MEFlashlightComponent.h"
 #include "Player/MEAimAssistComponent.h"
+#include "Stealth/MEVisibilityComponent.h"
 #include "Weapons/MEWeapon.h"
 #include "Weapons/MEWeaponComponent.h"
 #include "Weapons/MEWeaponData.h"
@@ -117,6 +118,9 @@ void AMEHUD::DrawDebugPanel()
 	Lines.Add(FString::Printf(TEXT("Visor     fog %.0f %%  cracks %d / %d%s"), Visor->GetFog() * 100.f, Visor->GetCracks(), Visor->GetMaxCracks(),
 		Visor->IsBroken() ? TEXT("  BROKEN") : TEXT("")));
 	Lines.Add(FString::Printf(TEXT("Flashlight %s"), Character->GetFlashlight()->IsOn() ? TEXT("ON") : TEXT("off")));
+	const UMEVisibilityComponent* Visibility = Character->GetVisibility();
+	Lines.Add(FString::Printf(TEXT("Visibility %.0f %%  light %.1f lux (%d lights)%s%s"), Visibility->GetVisibility() * 100.f, Visibility->GetIlluminance(),
+		Visibility->GetLightCount(), Character->GetFlashlight()->IsOn() ? TEXT("  FLASHLIGHT") : TEXT(""), Visibility->IsFlashing() ? TEXT("  SHOT") : TEXT("")));
 	const UMEAimAssistComponent* AimAssist = Character->GetAimAssist();
 	const AActor* AssistTarget = AimAssist->GetCurrentTarget();
 	Lines.Add(FString::Printf(TEXT("Aim assist  %s  target %s  slow x%.2f%s%s"), Character->IsUsingGamepad() ? TEXT("gamepad") : TEXT("mouse"),
@@ -178,8 +182,11 @@ void AMEHUD::DrawDebugPanel()
 			FName NoiseTag;
 			float NoiseAge;
 			const bool bHeard = Brain->GetLastNoise(NoiseLocation, NoiseTag, NoiseAge);
-			Lines.Add(FString::Printf(TEXT("  sees you %s  detection %.0f %%  heard %s"), Brain->CanSeePlayer() ? TEXT("YES") : TEXT("no"), Brain->GetDetection() * 100.f,
+			Lines.Add(FString::Printf(TEXT("  sees you %s  detection %.0f %%  heard %s"),
+				Brain->CanSeePlayer() ? TEXT("YES") : Brain->HasPlayerInView() ? TEXT("no (too dark)") : TEXT("no"), Brain->GetDetection() * 100.f,
 				bHeard ? *FString::Printf(TEXT("%s %.1f s ago"), *NoiseTag.ToString(), NoiseAge) : TEXT("nothing")));
+			Lines.Add(FString::Printf(TEXT("  sight range on you %.1f m%s"), Brain->GetPlayerSightDistance() / 100.f,
+				Brain->GetBeamExposure() > 0.f ? TEXT("  sees your beam") : TEXT("")));
 		}
 	}
 

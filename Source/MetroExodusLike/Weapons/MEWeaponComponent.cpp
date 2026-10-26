@@ -4,6 +4,7 @@
 #include "Weapons/MEWeaponData.h"
 #include "Weapons/MEShellCasing.h"
 #include "Player/MECharacter.h"
+#include "Stealth/MEVisibilityComponent.h"
 #include "Player/MEFirstPersonAnimInstance.h"
 #include "Player/MEFirstPersonCameraComponent.h"
 #include "Inventory/MEInventoryComponent.h"
@@ -409,6 +410,7 @@ void UMEWeaponComponent::FireShot()
 		UGameplayStatics::SpawnSoundAttached(Data->FireSound, Weapon->GetMesh());
 	}
 	MENoise::Report(Character, Weapon->GetActorLocation(), Data->ShotNoise, MENoise::Gunshot);
+	Character->GetVisibility()->Flash();
 
 	const UMEFirstPersonCameraComponent* Camera = Character->GetFirstPersonCamera();
 	EjectShell();

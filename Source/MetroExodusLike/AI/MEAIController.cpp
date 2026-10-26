@@ -7,6 +7,8 @@
 #include "World/MEPatrolPath.h"
 #include "Interaction/MEDoor.h"
 #include "Player/MECharacter.h"
+#include "Stealth/MEVisibilityComponent.h"
+#include "Survival/MEFlashlightComponent.h"
 #include "Combat/MEHealthComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
@@ -140,7 +142,7 @@ void AMEAIController::HandlePerception(AActor* Actor, FAIStimulus Stimulus)
 	const FAISenseID Sense = Stimulus.Type;
 	if (Sense == UAISense::GetSenseID<UAISense_Sight>())
 	{
-		SeenPlayer = Stimulus.WasSuccessfullySensed() && !IsDeadPlayer(Player) ? Player : nullptr;
+		InViewPlayer = Stimulus.WasSuccessfullySensed() && !IsDeadPlayer(Player) ? Player : nullptr;
 	}
 	else if (Sense == UAISense::GetSenseID<UAISense_Hearing>() && Stimulus.WasSuccessfullySensed())
 	{
@@ -237,7 +239,9 @@ void AMEAIController::Tick(float DeltaSeconds)
 		return;
 	}
 
+	UpdatePlayerVisible();
 	UpdateDetection(DeltaSeconds);
+	UpdateBeamNotice(DeltaSeconds);
 	UpdateMorale(DeltaSeconds);
 
 	SurroundingsTimer -= DeltaSeconds;
@@ -275,6 +279,7 @@ void AMEAIController::UpdateDetection(float DeltaSeconds)
 	const APawn* Player = SeenPlayer.Get();
 	if (Player && IsDeadPlayer(Player))
 	{
+		InViewPlayer = nullptr;
 		SeenPlayer = nullptr;
 		Player = nullptr;
 	}
@@ -311,9 +316,102 @@ void AMEAIController::UpdateDetection(float DeltaSeconds)
 	// On edge (after a scare, or already looking for someone): quicker to notice
 	const float AlertScale = AlertState != EMEAlertState::Calm ? WaryDetectionScale : 1.f;
 
-	Detection = FMath::Min(1.f, Detection + DeltaSeconds / FullDetectionTime * DistanceScale * AngleScale * PostureScale * AlertScale * GetProfile()->DetectionSpeed);
+	// A dim shape in the dark takes longer to make out
+	const AMECharacter* LitPlayer = Cast<AMECharacter>(Player);
+	const float LightScale = LitPlayer ? FMath::Lerp(DarkDetectionScale, 1.f, LitPlayer->GetVisibility()->GetVisibility()) : 1.f;
+
+	Detection = FMath::Min(1.f, Detection + DeltaSeconds / FullDetectionTime * DistanceScale * AngleScale * PostureScale * AlertScale * LightScale
+		* GetProfile()->DetectionSpeed);
 	LastSeenTime = Now;
 	LastSeenLocation = Player->GetActorLocation();
+}
+
+void AMEAIController::UpdatePlayerVisible()
+{
+	APawn* Player = InViewPlayer.Get();
+	const AMECharacter* PlayerCharacter = Cast<AMECharacter>(Player);
+	if (!Player || !PlayerCharacter)
+	{
+		SeenPlayer = Player;
+		PlayerSightDistance = Player ? LoseSightRadius : 0.f;
+		return;
+	}
+
+	// The dark shrinks how far it sees him; once seen it keeps him a little further (like the sight sense)
+	const float LitRange = SeenPlayer.IsValid() ? FMath::Max(LoseSightRadius, SightRadius) : SightRadius;
+	PlayerSightDistance = FMath::Lerp(FMath::Min(DarkSightDistance, LitRange), LitRange, PlayerCharacter->GetVisibility()->GetVisibility());
+
+	FVector Eyes;
+	FRotator View;
+	Enemy->GetActorEyesViewPoint(Eyes, View);
+	const float Distance = FVector::Dist(Eyes, Player->GetActorLocation());
+	SeenPlayer = Distance <= FMath::Max(PlayerSightDistance, TouchDistance) ? Player : nullptr;
+}
+
+void AMEAIController::UpdateBeamNotice(float DeltaSeconds)
+{
+	// Only a calm or uneasy enemy wonders about a light: the others already hunt
+	const AMECharacter* Player = Cast<AMECharacter>(UGameplayStatics::GetPlayerPawn(this, 0));
+	const bool bCanNotice = AlertState == EMEAlertState::Calm || AlertState == EMEAlertState::Wary || AlertState == EMEAlertState::Searching
+		|| AlertState == EMEAlertState::Suspicious;
+	const double Now = GetWorld()->GetTimeSeconds();
+	if (!Player || !bCanNotice || SeenPlayer.IsValid() || IsDeadPlayer(Player) || Now - BeamNoticedTime < BeamNoticeCooldown
+		|| !IsCaughtByBeam(*Player))
+	{
+		BeamExposure = FMath::Max(0.f, BeamExposure - DeltaSeconds);
+		return;
+	}
+
+	BeamExposure += DeltaSeconds;
+	if (BeamExposure < BeamNoticeTime)
+	{
+		return;
+	}
+
+	// It knows where the light comes from, roughly, like a noise
+	BeamExposure = 0.f;
+	BeamNoticedTime = Now;
+	const FVector Source = Player->GetFlashlight()->GetComponentLocation();
+	const float Error = NoiseLocationError * FVector::Dist(Source, Enemy->GetActorLocation());
+	BecomeSuspicious(Source + FMath::VRand().GetSafeNormal2D() * FMath::FRandRange(0.f, Error));
+}
+
+bool AMEAIController::IsCaughtByBeam(const AMECharacter& Player) const
+{
+	const UMEFlashlightComponent* Flashlight = Player.GetFlashlight();
+	if (!Flashlight->IsOn())
+	{
+		return false;
+	}
+
+	FVector Eyes;
+	FRotator View;
+	Enemy->GetActorEyesViewPoint(Eyes, View);
+	const FVector Source = Flashlight->GetComponentLocation();
+	const FVector Beam = Flashlight->GetDirection();
+
+	// Pointed at it: the bright source faces it, unhidden (it sees the glare, whatever it looks at)
+	const FVector ToEyes = Eyes - Source;
+	const float Distance = ToEyes.Size();
+	const float CosBeam = FMath::Cos(FMath::DegreesToRadians(FMath::Clamp(Flashlight->OuterConeAngle, 0.f, 89.f)));
+	if (Distance < FMath::Min(BeamNoticeDistance, Flashlight->AttenuationRadius) && FVector::DotProduct(Beam, ToEyes / FMath::Max(Distance, 1.f)) > CosBeam
+		&& HasLineOfSight(Source, &Player))
+	{
+		return true;
+	}
+
+	// The lit spot where the beam ends, in its view
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(MEAIBeam), false, &Player);
+	TArray<AActor*> Attached;
+	Player.GetAttachedActors(Attached, true, true);
+	Params.AddIgnoredActors(Attached);
+	FHitResult Hit;
+	if (!GetWorld()->LineTraceSingleByChannel(Hit, Source, Source + Beam * Flashlight->AttenuationRadius, ECC_Visibility, Params))
+	{
+		return false;
+	}
+	const FVector Spot = Hit.ImpactPoint + Hit.ImpactNormal * 10.f;
+	return FVector::Dist(Spot, Eyes) < BeamSpotNoticeDistance && CanSeeLocation(Spot, Hit.GetActor());
 }
 
 void AMEAIController::UpdateMorale(float DeltaSeconds)

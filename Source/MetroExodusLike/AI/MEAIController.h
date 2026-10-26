@@ -61,6 +61,15 @@ public:
 	/** 0..1: how sure it is the player is there. Fills while it sees the player, 1 = spotted. */
 	float GetDetection() const { return Detection; }
 	bool CanSeePlayer() const { return SeenPlayer.IsValid(); }
+
+	/** The player is in its view cone, unhidden, but maybe too far in the dark to be seen. */
+	bool HasPlayerInView() const { return InViewPlayer.IsValid(); }
+
+	/** Range at which it can see the player right now (shrinks in the dark). */
+	float GetPlayerSightDistance() const { return PlayerSightDistance; }
+
+	/** Time the player's flashlight beam has caught its eye (it gets suspicious at BeamNoticeTime). */
+	float GetBeamExposure() const { return BeamExposure; }
 	/** Where it last saw the player (valid once Detection has started filling). */
 	FVector GetLastSeenLocation() const { return LastSeenLocation; }
 
@@ -152,6 +161,35 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Perception|Detection", meta = (ClampMin = "0"))
 	float DetectionDecay = 0.15f;
+
+	// --- Light: the player's visibility (UMEVisibilityComponent) ---
+
+	/** Range at which it sees a player in pitch dark; fully lit, it is SightRadius (LoseSightRadius once seen). */
+	UPROPERTY(EditDefaultsOnly, Category = "Perception|Light", meta = (ClampMin = "0", Units = "cm"))
+	float DarkSightDistance = 400.f;
+
+	/** Detection speed for a player in pitch dark (fully lit: 1). */
+	UPROPERTY(EditDefaultsOnly, Category = "Perception|Light", meta = (ClampMin = "0", ClampMax = "1"))
+	float DarkDetectionScale = 0.25f;
+
+	/** Closer than this it sees the player whatever the light (bumping into him). */
+	UPROPERTY(EditDefaultsOnly, Category = "Perception|Light", meta = (ClampMin = "0", Units = "cm"))
+	float TouchDistance = 150.f;
+
+	/** The player's flashlight beam (pointed at it, or its spot in its view) caught this long: suspicious. */
+	UPROPERTY(EditDefaultsOnly, Category = "Perception|Light", meta = (ClampMin = "0", Units = "s"))
+	float BeamNoticeTime = 0.5f;
+
+	/** The beam counts this far from the flashlight (pointed at it) or from it (a lit spot it looks at). */
+	UPROPERTY(EditDefaultsOnly, Category = "Perception|Light", meta = (ClampMin = "0", Units = "cm"))
+	float BeamNoticeDistance = 2500.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Perception|Light", meta = (ClampMin = "0", Units = "cm"))
+	float BeamSpotNoticeDistance = 1500.f;
+
+	/** After noticing a beam, it does not react to another for this long. */
+	UPROPERTY(EditDefaultsOnly, Category = "Perception|Light", meta = (ClampMin = "0", Units = "s"))
+	float BeamNoticeCooldown = 3.f;
 
 	// --- Hearing: noises (MENoise) carry their own loudness, scaling this range ---
 
@@ -309,6 +347,10 @@ private:
 	UMESquadSubsystem* GetSquad() const;
 
 	void UpdateDetection(float DeltaSeconds);
+	/** Filters the player in view by the light on him: SeenPlayer is who it really sees. */
+	void UpdatePlayerVisible();
+	void UpdateBeamNotice(float DeltaSeconds);
+	bool IsCaughtByBeam(const class AMECharacter& Player) const;
 	void UpdateMorale(float DeltaSeconds);
 
 	/** Decides the alert state from what it sensed and was told since last frame. */
@@ -392,7 +434,13 @@ private:
 	double WaryUntil = -1.0;
 
 	// Perception
+	/** The player as the sight sense gives him: in the cone, not hidden. */
+	TWeakObjectPtr<APawn> InViewPlayer;
+	/** The player it really sees: in view, and lit enough for the distance. */
 	TWeakObjectPtr<APawn> SeenPlayer;
+	float PlayerSightDistance = 0.f;
+	float BeamExposure = 0.f;
+	double BeamNoticedTime = -100.0;
 	/** The player, once sensed at least once (cover is judged from his eyes). */
 	TWeakObjectPtr<APawn> KnownPlayer;
 	float Detection = 0.f;

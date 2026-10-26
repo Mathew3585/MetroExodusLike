@@ -103,12 +103,12 @@ alerte (prévient, fouille, alarme) → combat → recherche (redescend par l'al
 **Fini quand :** un groupe de 3 ennemis offre un combat crédible.
 
 ## Phase 6 — Lumière et infiltration
-- [ ] 6.1 Calcul de visibilité du joueur (lumières proches + ombre)
+- [x] 6.1 Visibilité du joueur (`UMEVisibilityComponent`, 0 = noir, 1 = pleine lumière) : lux reçus des lumières du niveau (portée, cône, couleur, ombre testée tête / torse / pieds), du soleil et de l'ambiance ; lampe allumée = visibilité mini 0,7, chaque tir = flash 0,15 s ; ligne `Visibility` dans `MEDebug`
 - [ ] 6.2 Indicateur sur la montre (LED)
 - [x] 6.3a Lampe torche frontale de base (`UMEFlashlightComponent`, spot sur le front qui suit la vue) : F / clic du stick droit = allumer / éteindre, grésillement à l'allumage (durée, vitesse, coupures réglables) ; réglages de la lumière dans `BP_MECharacter` ; sons de clic prêts (→ *Assets à trouver*)
 - [ ] 6.3b Batterie de la lampe (s'use allumée, faiblit et clignote en fin de charge) + chargeur manuel, briquet
 - [ ] 6.4 Lumières destructibles / éteignables
-- [ ] 6.5 La perception IA utilise la visibilité du joueur
+- [x] 6.5 La perception IA utilise la visibilité : dans le noir l'ennemi ne voit qu'à ~4 m (`DarkSightDistance`) et sa jauge monte 4× moins vite, collé = toujours vu ; faisceau de la lampe braqué sur lui ou tache de lumière dans son champ 0,5 s = suspicion vers la source ; debug : portée de vue sur le joueur, « too dark », « sees your beam »
 - [ ] 6.6 Takedown silencieux (assommer / tuer) par derrière
 
 **Fini quand :** on peut nettoyer une zone sans être repéré, en jouant avec l'ombre.

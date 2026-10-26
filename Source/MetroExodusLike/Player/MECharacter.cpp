@@ -15,6 +15,7 @@
 #include "Survival/MEVisorComponent.h"
 #include "Survival/MEFlashlightComponent.h"
 #include "Player/MEAimAssistComponent.h"
+#include "Stealth/MEVisibilityComponent.h"
 #include "Player/MEFootstepComponent.h"
 #include "Core/MEGameMode.h"
 #include "Kismet/GameplayStatics.h"
@@ -94,6 +95,7 @@ AMECharacter::AMECharacter()
 	Flashlight->SetRelativeLocation(FVector(4.f, 0.f, 9.f));
 
 	AimAssist = CreateDefaultSubobject<UMEAimAssistComponent>(TEXT("AimAssist"));
+	Visibility = CreateDefaultSubobject<UMEVisibilityComponent>(TEXT("Visibility"));
 
 	Footsteps = CreateDefaultSubobject<UMEFootstepComponent>(TEXT("Footsteps"));
 
